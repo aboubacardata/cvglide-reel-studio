@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVGlide HD Reel Video Generator</title>
+  <!-- Outfit Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #09090e;
+      --bg-card: rgba(18, 18, 26, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent: #1D9E75;
+      --accent-hover: #178260;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --iphone-bezel: #1b1b22;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(29, 158, 117, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(127, 119, 221, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(9, 9, 14, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container { display: flex; align-items: center; gap: 12px; }
+    .logo-container svg { width: 32px; height: 32px; }
+    .logo-text { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, #fff 30%, var(--accent) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .logo-tag { font-size: 11px; background: rgba(29, 158, 117, 0.15); color: #3adea2; padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(29, 158, 117, 0.2); font-weight: 500; }
+    
+    .dashboard {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 40px;
+      padding: 40px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1100px) { .dashboard { grid-template-columns: 1fr; } }
+
+    .preview-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border-radius: 24px;
+      border: 1px solid var(--border-color);
+      padding: 40px 20px;
+      backdrop-filter: blur(20px);
+      min-height: 900px;
+    }
+
+    /* True 9:16 aspect ratio preview container */
+    .phone-frame {
+      width: 450px;
+      height: 800px;
+      background: var(--iphone-bezel);
+      border-radius: 48px;
+      padding: 10px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 4px #2c2c35, 0 0 20px 2px rgba(29, 158, 117, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #09090e;
+      border-radius: 38px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .controls-container { display: flex; flex-direction: column; gap: 24px; }
+    .panel { background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); padding: 24px; }
+    .panel-title { font-size: 16px; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .panel-title svg { width: 18px; height: 18px; color: var(--accent); }
+
+    /* Exporter / Recorder */
+    .export-btn { padding: 14px 16px; border-radius: 12px; background: linear-gradient(135deg, #1D9E75 0%, #157c5c 100%); border: none; color: #fff; cursor: pointer; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-shadow: 0 4px 15px rgba(29, 158, 117, 0.25); transition: all 0.2s; }
+    .export-btn:hover { background: linear-gradient(135deg, #22b687 0%, #1D9E75 100%); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(29, 158, 117, 0.35); }
+
+    /* Timeline scrubbers */
+    .timeline-widget { display: flex; flex-direction: column; gap: 12px; }
+    .scrubber-row { display: flex; align-items: center; gap: 16px; }
+    .play-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--accent); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .play-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
+    .play-btn svg { width: 14px; height: 14px; fill: currentColor; }
+    .scrubber-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); cursor: pointer; }
+    .scrubber-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); cursor: pointer; }
+    .time-label { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted); min-width: 48px; text-align: right; }
+
+    /* Theme switchers */
+    .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .theme-btn { padding: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 600; text-align: center; transition: all 0.2s; }
+    .theme-btn.active, .theme-btn:hover { background: rgba(29, 158, 117, 0.15); border-color: var(--accent); color: #3adea2; }
+
+    /* Copy Options */
+    .copy-option-card { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .copy-option-card:hover { background: rgba(255, 255, 255, 0.04); }
+    .copy-option-card.active { background: rgba(29, 158, 117, 0.05); border-color: var(--accent); }
+    .copy-option-card.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
+    .copy-option-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .copy-option-name { font-weight: 600; font-size: 14px; }
+    .copy-option-badge { font-size: 10px; background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
+    .copy-option-card.active .copy-option-badge { background: rgba(29, 158, 117, 0.2); color: #3adea2; }
+    .copy-option-preview { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    /* Recording Overlay */
+    #recordingOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(9, 9, 14, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    .recording-spinner { width: 50px; height: 50px; border: 4px solid rgba(29, 158, 117, 0.2); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- HD Recording Modal -->
+  <div id="recordingOverlay" style="display: none;">
+    <div class="recording-spinner"></div>
+    <div style="font-size: 24px; font-weight: 700; color: #fff; margin-top: 10px;">Generating 1080x1920 HD Reel...</div>
+    <div style="font-size: 14px; color: var(--text-muted); text-align: center; max-width: 320px; line-height: 1.5;">
+      Rasterizing crisp vectors frame-by-frame. Please do not close your tab.
+    </div>
+    <div style="width: 300px; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin-top: 10px;">
+      <div id="recordingProgress" style="width: 0%; height: 100%; background: var(--accent); transition: width 0.05s;"></div>
+    </div>
+    <div id="recordingStatus" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent);">0% completed (0/300 frames)</div>
+  </div>
+
+  <header>
+    <div class="logo-container">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" stroke="#1D9E75" stroke-width="8" fill="rgba(29, 158, 117, 0.05)" />
+        <path d="M30 40C30 35 35 30 50 30C65 30 70 38 70 45C70 55 50 55 50 62C50 66 48 68 45 68" stroke="#1D9E75" stroke-width="8" stroke-linecap="round" />
+        <circle cx="45" cy="78" r="5" fill="#1D9E75" />
+      </svg>
+      <div>
+        <span class="logo-text">CVGlide</span>
+        <span class="logo-tag">HD Reel Studio</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="dashboard">
+    
+    <!-- LEFT: PREVIEW PANEL -->
+    <div class="preview-container">
+      <div class="phone-frame" id="phoneMockup">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          
+          <!-- MAIN STORY SVG: 9:16 NATIVE ASPECT RATIO -->
+          <svg id="storyAdSvg" width="100%" height="100%" viewBox="0 0 450 800" role="img" xmlns="http://www.w3.org/2000/svg" style="background:#09090e; font-family:'Outfit', sans-serif;">
+            
+            <g id="slidesGroup">
+              
+              <!-- ── SCREEN 1: PROBLEM (Y = 0 to 800) ── -->
+              <rect x="0" y="0" width="450" height="800" fill="#FCFCFA" />
+              <rect x="155" y="110" width="140" height="40" rx="20" fill="#F1EFE8" />
+              <text x="225" y="136" font-size="14" font-weight="700" fill="#888780" text-anchor="middle" letter-spacing="2">GENERIC CV</text>
+              
+              <text id="txt-topLine1" x="225" y="210" font-size="24" font-weight="600" fill="#2C2C2A" text-anchor="middle">100 applications. 0 replies.</text>
+              <text id="txt-topLine2" x="225" y="255" font-size="30" font-weight="800" fill="#E24B4A" text-anchor="middle">Still running on the treadmill?</text>
+
+              <!-- Playful Problem Graphics -->
+              <g id="playfulThemeProblemGroup" transform="translate(-9, 230) scale(1.2)">
+                <g id="treadmillGroup">
+                  <rect x="186" y="228" width="130" height="9" rx="3" fill="#D3D1C7" />
+                  <rect x="190" y="237" width="7" height="26" rx="2" fill="#D3D1C7" />
+                  <rect x="309" y="237" width="7" height="26" rx="2" fill="#D3D1C7" />
+                  <rect x="190" y="260" width="126" height="7" rx="2" fill="#B4B2A9" />
+                  <line id="runningBeltLine" x1="195" y1="264" x2="311" y2="239" stroke="#B4B2A9" stroke-width="1.5" stroke-dasharray="6 8" />
+                </g>
+                <g id="angryStickmanGroup">
+                  <circle id="stickmanSadHead" cx="258" cy="118" r="26" fill="none" stroke="#2C2C2A" stroke-width="2.5" />
+                  <line id="stickmanSadBrowL" x1="244" y1="108" x2="254" y2="112" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  <line id="stickmanSadBrowR" x1="262" y1="112" x2="272" y2="108" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  <circle cx="250" cy="118" r="2.5" fill="#2C2C2A" />
+                  <circle cx="266" cy="118" r="2.5" fill="#2C2C2A" />
+                  <path d="M250 132 Q258 126 266 132" fill="none" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round" />
+                  <line id="stickmanSadBody" x1="258" y1="144" x2="258" y2="196" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  <line id="armLeft" x1="258" y1="158" x2="234" y2="140" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  <line id="armRight" x1="258" y1="158" x2="282" y2="148" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  <g id="legLeftGroup">
+                    <line x1="258" y1="196" x2="236" y2="232" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="236" y1="232" x2="220" y2="234" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  </g>
+                  <g id="legRightGroup">
+                    <line x1="258" y1="196" x2="278" y2="228" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="278" y1="228" x2="292" y2="233" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  </g>
+                  <ellipse id="sweatDrop1" cx="290" cy="104" rx="4" ry="6" fill="#B5D4F4" opacity="0.8" />
+                  <ellipse id="sweatDrop2" cx="304" cy="118" rx="3" ry="5" fill="#B5D4F4" opacity="0.55" />
+                </g>
+              </g>
+
+              <!-- Mature Problem Graphics -->
+              <g id="matureThemeProblemGroup" style="display:none;" transform="translate(-9, 230) scale(1.2)">
+                <g id="cvGrindGroup">
+                  <rect x="190" y="112" width="120" height="154" rx="8" fill="#111116" stroke="#E2E2E6" stroke-width="1.5" />
+                  <rect x="202" y="126" width="40" height="7" rx="2" fill="#B4B2A9" opacity="0.8"/>
+                  <rect x="202" y="137" width="22" height="4" rx="1" fill="#D3D1C7" opacity="0.6"/>
+                  <line x1="202" y1="154" x2="298" y2="154" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="165" x2="284" y2="165" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="176" x2="292" y2="176" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="187" x2="274" y2="187" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="198" x2="298" y2="198" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="209" x2="258" y2="209" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="220" x2="288" y2="220" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <line x1="202" y1="231" x2="278" y2="231" stroke="#E2E2E6" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+                  <g id="radarLineRedGroup" transform="translate(0, 114)">
+                    <line x1="186" y1="0" x2="314" y2="0" stroke="#E24B4A" stroke-width="2.5" opacity="0.8" />
+                    <rect x="188" y="-12" width="124" height="12" fill="url(#redGrad)" opacity="0.15" />
+                  </g>
+                </g>
+                <g id="atsBadgeRed">
+                  <rect x="50" y="112" width="138" height="34" rx="8" fill="rgba(226,75,74,0.12)" stroke="rgba(226,75,74,0.25)" stroke-width="1" />
+                  <circle cx="66" cy="129" r="4" fill="#E24B4A" />
+                  <text x="78" y="133" font-family="Outfit, sans-serif" font-size="11" font-weight="700" fill="#E24B4A">ATS Match: 24%</text>
+                </g>
+                <g id="rejectionsStackGroup">
+                  <rect x="50" y="158" width="138" height="74" rx="8" fill="#FBFBFA" stroke="#E2E2E6" stroke-width="1" />
+                  <text x="60" y="174" font-family="Outfit, sans-serif" font-size="9" font-weight="700" fill="#888780" letter-spacing="0.5">REJECTION INBOX</text>
+                  <text x="178" y="174" font-family="Outfit, sans-serif" font-size="9" font-weight="700" fill="#E24B4A" text-anchor="end">14 NEW</text>
+                  <circle cx="64" cy="192" r="2.5" fill="#E24B4A" />
+                  <text x="72" y="195" font-family="Outfit, sans-serif" font-size="9" fill="#2C2C2A" font-weight="600">Company X: Sadly...</text>
+                  <circle cx="64" cy="208" r="2.5" fill="#E24B4A" />
+                  <text x="72" y="211" font-family="Outfit, sans-serif" font-size="9" fill="#2C2C2A" font-weight="600">Company Y: Thanks but...</text>
+                </g>
+              </g>
+
+              <!-- ── SCREEN 2: SOLUTION (Y = 800 to 1600) ── -->
+              <rect x="0" y="800" width="450" height="800" fill="#E1F5EE" />
+              <rect x="155" y="860" width="140" height="40" rx="20" fill="#FFFFFF" />
+              <text x="225" y="886" font-size="14" font-weight="700" fill="#1D9E75" text-anchor="middle" letter-spacing="2">CVGLIDE.COM</text>
+              
+              <text id="txt-bottomLine1" x="225" y="970" font-size="30" font-weight="800" fill="#1D9E75" text-anchor="middle">20 interviews. This month.</text>
+              <text id="txt-bottomLine2" x="225" y="1015" font-size="24" font-weight="600" fill="#2C2C2A" text-anchor="middle">Glide past the competition.</text>
+
+              <!-- Playful Solution Graphics -->
+              <g id="playfulThemeSolutionGroup" transform="translate(-9, 640) scale(1.2)">
+                <g id="scooterSceneGroup">
+                  <g id="scooterGroup">
+                    <rect x="192" y="510" width="126" height="9" rx="4" fill="#1D9E75" />
+                    <line x1="258" y1="452" x2="258" y2="510" stroke="#1D9E75" stroke-width="3" stroke-linecap="round" />
+                    <line x1="236" y1="452" x2="280" y2="452" stroke="#1D9E75" stroke-width="3" stroke-linecap="round" />
+                    <g id="wheelRear">
+                      <circle cx="210" cy="525" r="16" fill="none" stroke="#1D9E75" stroke-width="2.5" />
+                      <circle cx="210" cy="525" r="5" fill="#1D9E75" />
+                      <line x1="210" y1="509" x2="210" y2="541" stroke="#1D9E75" stroke-width="1.5" />
+                      <line x1="194" y1="525" x2="226" y2="525" stroke="#1D9E75" stroke-width="1.5" />
+                    </g>
+                    <g id="wheelFront">
+                      <circle cx="300" cy="525" r="16" fill="none" stroke="#1D9E75" stroke-width="2.5" />
+                      <circle cx="300" cy="525" r="5" fill="#1D9E75" />
+                      <line x1="300" y1="509" x2="300" y2="541" stroke="#1D9E75" stroke-width="1.5" />
+                      <line x1="284" y1="525" x2="316" y2="525" stroke="#1D9E75" stroke-width="1.5" />
+                    </g>
+                  </g>
+                  <g id="happyStickman">
+                    <circle cx="258" cy="394" r="26" fill="none" stroke="#2C2C2A" stroke-width="2.5" />
+                    <path d="M246 383 Q252 378 258 383" fill="none" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round" />
+                    <path d="M258 383 Q264 378 270 383" fill="none" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round" />
+                    <path d="M250 392 Q254 397 258 392" fill="none" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round" />
+                    <path d="M258 392 Q262 397 266 392" fill="none" stroke="#2C2C2A" stroke-width="2" stroke-linecap="round" />
+                    <path d="M248 408 Q258 418 268 408" fill="none" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="258" y1="420" x2="258" y2="472" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="258" y1="435" x2="244" y2="452" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="258" y1="435" x2="272" y2="452" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="258" y1="472" x2="240" y2="512" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                    <line x1="258" y1="472" x2="276" y2="510" stroke="#2C2C2A" stroke-width="2.5" stroke-linecap="round" />
+                  </g>
+                  <text id="starTwinkle1" x="228" y="374" font-size="16" fill="#EF9F27">★</text>
+                  <text id="starTwinkle2" x="280" y="370" font-size="12" fill="#EF9F27">★</text>
+                  <text id="starTwinkle3" x="292" y="390" font-size="10" fill="#EF9F27">★</text>
+                </g>
+                <g id="windGroup">
+                  <line id="windLine1" x1="140" y1="504" x2="190" y2="504" stroke="#9FE1CB" stroke-width="2.5" stroke-linecap="round" />
+                  <line id="windLine2" x1="130" y1="518" x2="185" y2="518" stroke="#9FE1CB" stroke-width="3" stroke-linecap="round" />
+                  <line id="windLine3" x1="140" y1="532" x2="190" y2="532" stroke="#9FE1CB" stroke-width="2.5" stroke-linecap="round" />
+                </g>
+              </g>
+
+              <!-- Mature Solution Graphics -->
+              <g id="matureThemeSolutionGroup" style="display:none;" transform="translate(-9, 640) scale(1.2)">
+                <g id="cvTailoredGroup">
+                  <rect x="190" y="378" width="120" height="154" rx="8" fill="#111116" stroke="#1D9E75" stroke-width="1.5" />
+                  <rect x="202" y="392" width="40" height="7" rx="2" fill="#1D9E75" opacity="0.8"/>
+                  <rect x="202" y="403" width="22" height="4" rx="1" fill="#9FE1CB" opacity="0.6"/>
+                  <line x1="202" y1="420" x2="242" y2="420" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <rect id="matureKeywordBlock1" x="246" y="417" width="46" height="6" rx="2" fill="#1D9E75" />
+                  <line x1="202" y1="431" x2="260" y2="431" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <rect id="matureKeywordBlock2" x="202" y="440" width="38" height="6" rx="2" fill="#1D9E75" />
+                  <line x1="244" y1="443" x2="288" y2="443" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <line x1="202" y1="454" x2="294" y2="454" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <rect id="matureKeywordBlock3" x="202" y="463" width="54" height="6" rx="2" fill="#1D9E75" />
+                  <line x1="260" y1="466" x2="284" y2="466" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <line x1="202" y1="477" x2="274" y2="477" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <line x1="202" y1="488" x2="292" y2="488" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <line x1="202" y1="499" x2="258" y2="499" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+                  <g id="radarLineGreenGroup" transform="translate(0, 380)">
+                    <line x1="186" y1="0" x2="314" y2="0" stroke="#1D9E75" stroke-width="2.5" opacity="0.8" />
+                    <rect x="188" y="-12" width="124" height="12" fill="url(#greenGrad)" opacity="0.15" />
+                  </g>
+                </g>
+                <g id="atsBadgeGreen">
+                  <rect x="50" y="378" width="138" height="34" rx="8" fill="rgba(29,158,117,0.12)" stroke="rgba(29,158,117,0.25)" stroke-width="1" />
+                  <circle cx="66" cy="395" r="4" fill="#1D9E75" />
+                  <text x="78" y="399" font-family="Outfit, sans-serif" font-size="11" font-weight="700" fill="#1D9E75">ATS Match: 98%</text>
+                </g>
+                <g id="interviewsStack">
+                  <g id="matureNotifyCard1">
+                    <rect x="50" y="424" width="138" height="42" rx="8" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="1" />
+                    <circle cx="64" cy="445" r="6" fill="#E1F5EE" />
+                    <text x="64" y="449" font-family="Outfit, sans-serif" font-size="8" font-weight="900" fill="#1D9E75" text-anchor="middle">✓</text>
+                    <text x="76" y="440" font-family="Outfit, sans-serif" font-size="8.5" font-weight="800" fill="#2C2C2A">Stripe Invite</text>
+                    <text x="76" y="451" font-family="Outfit, sans-serif" font-size="7.5" fill="#888780">Schedule your chat</text>
+                  </g>
+                  <g id="matureNotifyCard2">
+                    <rect x="50" y="478" width="138" height="42" rx="8" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="1" />
+                    <circle cx="64" cy="499" r="6" fill="#E1F5EE" />
+                    <text x="64" y="503" font-family="Outfit, sans-serif" font-size="8" font-weight="900" fill="#1D9E75" text-anchor="middle">✓</text>
+                    <text x="76" y="494" font-family="Outfit, sans-serif" font-size="8.5" font-weight="800" fill="#2C2C2A">Airbnb Interview</text>
+                    <text x="76" y="505" font-family="Outfit, sans-serif" font-size="7.5" fill="#888780">Calendar confirmed</text>
+                  </g>
+                </g>
+              </g>
+
+              <!-- ── SCREEN 3: VALUE PROPS & CTA (Y = 1600 to 2400) ── -->
+              <rect x="0" y="1600" width="450" height="800" fill="#09090E" />
+              
+              <!-- Prop 1 -->
+              <circle cx="225" cy="1710" r="20" fill="#1D9E75" opacity="0.15" />
+              <text x="225" y="1717" font-size="18" font-weight="900" fill="#1D9E75" text-anchor="middle">✓</text>
+              <text id="txt-prop1Title" x="225" y="1760" font-size="26" font-weight="800" fill="#FFFFFF" text-anchor="middle">Custom-Tailored CVs</text>
+              <text id="txt-prop1Desc" x="225" y="1795" font-size="18" font-weight="500" fill="#E5E7EB" text-anchor="middle">Built specifically for the role.</text>
+
+              <!-- Prop 2 -->
+              <circle cx="225" cy="1880" r="20" fill="#1D9E75" opacity="0.15" />
+              <text x="225" y="1887" font-size="18" font-weight="900" fill="#1D9E75" text-anchor="middle">✓</text>
+              <text id="txt-prop2Title" x="225" y="1930" font-size="26" font-weight="800" fill="#FFFFFF" text-anchor="middle">Matching Cover Letters</text>
+              <text id="txt-prop2Desc" x="225" y="1965" font-size="18" font-weight="500" fill="#E5E7EB" text-anchor="middle">Personal, precise, and ready.</text>
+
+              <!-- Glowing CTA -->
+              <ellipse cx="225" cy="2110" rx="120" ry="30" fill="#1D9E75" opacity="0.25" filter="blur(20px)" />
+              <rect x="75" y="2080" width="300" height="60" rx="30" fill="#1D9E75" />
+              <text id="txt-cta" x="225" y="2117" font-size="22" font-weight="800" fill="#FFFFFF" text-anchor="middle">Glide past the line</text>
+              <text x="225" y="2210" font-size="18" font-weight="600" fill="#6B7280" text-anchor="middle" letter-spacing="1.5">CVGLIDE.COM</text>
+
+            </g> <!-- End slidesGroup -->
+
+            <!-- Scanner Gradients -->
+            <defs>
+              <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#E24B4A" stop-opacity="0" />
+                <stop offset="100%" stop-color="#E24B4A" stop-opacity="1" />
+              </linearGradient>
+              <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1D9E75" stop-opacity="0" />
+                <stop offset="100%" stop-color="#1D9E75" stop-opacity="1" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CONTROLS PANEL -->
+    <div class="controls-container">
+      
+      <!-- EXPORT MEDIA -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+          </svg>
+          Export Cinematic HD Reel
+        </div>
+        <button class="export-btn" onclick="recordVideo()">
+          <svg style="width:16px; height:16px;" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" /></svg>
+          Record & Download Video
+        </button>
+      </div>
+
+      <!-- DESIGN THEME SELECTOR -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122l.75 3.003m5.196-3.003l-.75 3.003m-6.42-3.003L4.98 8.087m10.122 8.035l4.33-8.035m-15.22 8.035a9 9 0 0115.22 0zM12 2.25a9 9 0 00-9 9m9-9a9 9 0 019 9"></path>
+          </svg>
+          Design & Visuals Theme
+        </div>
+        <div class="theme-grid">
+          <button id="theme-playful" class="theme-btn active" onclick="setTheme('playful')">Playful Stickman</button>
+          <button id="theme-mature" class="theme-btn" onclick="setTheme('mature')">Mature SaaS Mockup</button>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+          </svg>
+          Timeline
+        </div>
+        <div class="timeline-widget">
+          <div class="scrubber-row">
+            <button class="play-btn" onclick="togglePlay()">
+              <svg id="playIconSvg" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <input type="range" id="timelineScrubber" class="scrubber-slider" min="0" max="1000" value="0" oninput="scrubTimeline(this.value)">
+            <span id="timeLabel" class="time-label">0.0s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- COPY EDITOR -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path>
+          </svg>
+          Copywriting Engine
+        </div>
+        <div id="copyOptionsContainer"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const COPY_OPTIONS = {
+      option1: {
+        name: "🥇 Rank 1 — The Reality Check",
+        badge: "Best Performer ⚡",
+        desc: "Mirrors the exact pain of mass-applying. Stops scrolling dead. Highest empathy = highest conversion.",
+        topLine1: "100 applications. 0 replies.",
+        topLine2: "Your CV is being ignored.",
+        bottomLine1: "1 tailored CV. Callbacks in days.",
+        bottomLine2: "That's the CVGlide difference.",
+        prop1Title: "Custom-Tailored CVs",
+        prop1Desc: "Built specifically for the role.",
+        prop2Title: "Matching Cover Letters",
+        prop2Desc: "Personal, precise, and ready.",
+        cta: "Start getting callbacks"
+      },
+      option2: {
+        name: "🥈 Rank 2 — The Sharp Contrast",
+        badge: "Strong Hook 🎯",
+        desc: "Punchy rhythm, instant before/after logic. Great for audiences who skim fast on Reels.",
+        topLine1: "Generic CV = rejection.",
+        topLine2: "Every. Single. Time.",
+        bottomLine1: "Tailored CV = interview.",
+        bottomLine2: "CVGlide makes it automatic.",
+        prop1Title: "100% Role-Aligned CVs",
+        prop1Desc: "Matched to every job description.",
+        prop2Title: "Tailored Cover Letters",
+        prop2Desc: "Written to hook hiring managers.",
+        cta: "Tailor your CV now"
+      }
+    };
+
+    const state = {
+      isPlaying: true,
+      t: 0,
+      duration: 12000,
+      speed: 1.0,
+      theme: 'playful',
+      activeCopy: 'option1',
+      lastFrameTime: null,
+      isRecording: false
+    };
+
+    const svgEl = document.getElementById('storyAdSvg');
+    const playIconSvg = document.getElementById('playIconSvg');
+    const timelineScrubber = document.getElementById('timelineScrubber');
+    const timeLabel = document.getElementById('timeLabel');
+    const slidesGroup = document.getElementById('slidesGroup');
+    const phoneMockup = document.getElementById('phoneMockup');
+
+    // SVGs Text Elements
+    const txtTopLine1 = document.getElementById('txt-topLine1');
+    const txtTopLine2 = document.getElementById('txt-topLine2');
+    const txtBottomLine1 = document.getElementById('txt-bottomLine1');
+    const txtBottomLine2 = document.getElementById('txt-bottomLine2');
+    const txtProp1Title = document.getElementById('txt-prop1Title');
+    const txtProp1Desc = document.getElementById('txt-prop1Desc');
+    const txtProp2Title = document.getElementById('txt-prop2Title');
+    const txtProp2Desc = document.getElementById('txt-prop2Desc');
+    const txtCta = document.getElementById('txt-cta');
+
+    // JS ANIMATION TARGETS
+    const animRunningBeltLine = document.getElementById('runningBeltLine');
+    const animStickmanSadHead = document.getElementById('stickmanSadHead');
+    const animStickmanSadBody = document.getElementById('stickmanSadBody');
+    const animArmLeft = document.getElementById('armLeft');
+    const animArmRight = document.getElementById('armRight');
+    const animLegLeftGroup = document.getElementById('legLeftGroup');
+    const animLegRightGroup = document.getElementById('legRightGroup');
+    const animSweatDrop1 = document.getElementById('sweatDrop1');
+    const animSweatDrop2 = document.getElementById('sweatDrop2');
+    
+    const animScooterSceneGroup = document.getElementById('scooterSceneGroup');
+    const animWheelRear = document.getElementById('wheelRear');
+    const animWheelFront = document.getElementById('wheelFront');
+    const animStarTwinkle1 = document.getElementById('starTwinkle1');
+    const animStarTwinkle2 = document.getElementById('starTwinkle2');
+    const animStarTwinkle3 = document.getElementById('starTwinkle3');
+    
+    const animRadarLineRedGroup = document.getElementById('radarLineRedGroup');
+    const animRadarLineGreenGroup = document.getElementById('radarLineGreenGroup');
+    const animMatureKeywordBlock1 = document.getElementById('matureKeywordBlock1');
+    const animMatureKeywordBlock2 = document.getElementById('matureKeywordBlock2');
+    const animMatureKeywordBlock3 = document.getElementById('matureKeywordBlock3');
+    const animMatureNotifyCard1 = document.getElementById('matureNotifyCard1');
+    const animMatureNotifyCard2 = document.getElementById('matureNotifyCard2');
+
+    function buildCopyCards() {
+      const container = document.getElementById('copyOptionsContainer');
+      container.innerHTML = '';
+      
+      Object.keys(COPY_OPTIONS).forEach(key => {
+        const option = COPY_OPTIONS[key];
+        const isActive = key === state.activeCopy;
+        
+        const card = document.createElement('div');
+        card.id = `copy-card-${key}`;
+        card.className = `copy-option-card ${isActive ? 'active' : ''}`;
+        card.onclick = () => setCopy(key);
+        
+        card.innerHTML = `
+          <div class="copy-option-header">
+            <span class="copy-option-name">${option.name}</span>
+            <span class="copy-option-badge">${option.badge}</span>
+          </div>
+          <div class="copy-option-preview">${option.desc}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function adjustTextSize(el, defaultSize) {
+      el.setAttribute('font-size', defaultSize);
+      try {
+        let length = el.getComputedTextLength();
+        if (length === 0) {
+          const text = el.textContent || "";
+          length = text.length * defaultSize * 0.55;
+        }
+        let size = defaultSize;
+        while (length > 390 && size > 14) {
+          size -= 1;
+          el.setAttribute('font-size', size);
+          length = el.getComputedTextLength();
+          if (length === 0) {
+            const text = el.textContent || "";
+            length = text.length * size * 0.55;
+          }
+        }
+      } catch (e) {}
+    }
+
+    function applyCopy(key) {
+      const option = COPY_OPTIONS[key];
+      txtTopLine1.textContent = option.topLine1;
+      txtTopLine2.textContent = option.topLine2;
+      txtBottomLine1.textContent = option.bottomLine1;
+      txtBottomLine2.textContent = option.bottomLine2;
+      txtProp1Title.textContent = option.prop1Title;
+      txtProp1Desc.textContent = option.prop1Desc;
+      txtProp2Title.textContent = option.prop2Title;
+      txtProp2Desc.textContent = option.prop2Desc;
+      txtCta.textContent = option.cta;
+
+      // Dynamically auto-fit visual sizes to ensure 0% clipping on all devices
+      adjustTextSize(txtTopLine1, 24);
+      adjustTextSize(txtTopLine2, 30);
+      adjustTextSize(txtBottomLine1, 30);
+      adjustTextSize(txtBottomLine2, 24);
+      adjustTextSize(txtProp1Title, 26);
+      adjustTextSize(txtProp2Title, 26);
+    }
+
+    function setCopy(key) {
+      state.activeCopy = key;
+      buildCopyCards();
+      applyCopy(key);
+    }
+
+    function setTheme(theme) {
+      state.theme = theme;
+      document.getElementById('theme-playful').className = `theme-btn ${theme === 'playful' ? 'active' : ''}`;
+      document.getElementById('theme-mature').className = `theme-btn ${theme === 'mature' ? 'active' : ''}`;
+      
+      const playfulProb = document.getElementById('playfulThemeProblemGroup');
+      const playfulSol = document.getElementById('playfulThemeSolutionGroup');
+      const matureProb = document.getElementById('matureThemeProblemGroup');
+      const matureSol = document.getElementById('matureThemeSolutionGroup');
+      
+      if (theme === 'playful') {
+        playfulProb.style.display = 'block';
+        playfulSol.style.display = 'block';
+        matureProb.style.display = 'none';
+        matureSol.style.display = 'none';
+      } else {
+        playfulProb.style.display = 'none';
+        playfulSol.style.display = 'none';
+        matureProb.style.display = 'block';
+        matureSol.style.display = 'block';
+      }
+    }
+
+    function togglePlay() {
+      state.isPlaying = !state.isPlaying;
+      if (state.isPlaying) {
+        playIconSvg.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        state.lastFrameTime = performance.now();
+        requestAnimationFrame(loop);
+      } else {
+        playIconSvg.innerHTML = '<polygon points="8,5 19,12 8,19" />';
+      }
+    }
+
+    function scrubTimeline(val) {
+      state.t = (val / 1000) * state.duration;
+      timeLabel.textContent = (state.t / 1000).toFixed(1) + 's';
+      updateSvgAnimations();
+      updateCinematicTimeline();
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+    function updateSvgAnimations() {
+      const t = state.t;
+      
+      // Playful
+      const beltOffset = (t / 400) % 1 * 14;
+      animRunningBeltLine.setAttribute('stroke-dashoffset', beltOffset);
+      const bobY = Math.sin((t / 250) * Math.PI * 2) * -3 - 3;
+      animStickmanSadHead.setAttribute('transform', `translate(0, ${bobY})`);
+      animStickmanSadBody.setAttribute('transform', `translate(0, ${bobY})`);
+      const swingAngle = Math.sin((t / 250) * Math.PI * 2) * 22.5;
+      animLegLeftGroup.setAttribute('transform', `rotate(${swingAngle}, 258, 196)`);
+      animLegRightGroup.setAttribute('transform', `rotate(${-swingAngle}, 258, 196)`);
+      animArmLeft.setAttribute('transform', `rotate(${-swingAngle * 0.8}, 258, 158)`);
+      animArmRight.setAttribute('transform', `rotate(${swingAngle * 0.8}, 258, 158)`);
+      
+      const scooterY = Math.sin((t / 800) * Math.PI * 2) * -3 - 3;
+      animScooterSceneGroup.setAttribute('transform', `translate(0, ${scooterY})`);
+      const wheelRotate = (t / 300) * 360 % 360;
+      animWheelRear.setAttribute('transform', `rotate(${wheelRotate}, 210, 525)`);
+      animWheelFront.setAttribute('transform', `rotate(${wheelRotate}, 300, 525)`);
+
+      // Mature
+      const scanFrac = (t / 2500) % 1;
+      const scanY = scanFrac * 115;
+      const scanOpacity = scanFrac < 0.1 ? scanFrac / 0.1 : (scanFrac > 0.9 ? (1 - scanFrac) / 0.1 : 1);
+      animRadarLineRedGroup.setAttribute('transform', `translate(0, ${scanY})`);
+      animRadarLineRedGroup.setAttribute('opacity', scanOpacity);
+      animRadarLineGreenGroup.setAttribute('transform', `translate(0, ${scanY})`);
+      animRadarLineGreenGroup.setAttribute('opacity', scanOpacity);
+
+      const shimVal1 = 0.3 + Math.sin((t / 1800) * Math.PI * 2) * 0.5;
+      const shimVal2 = 0.3 + Math.sin(((t + 400) / 1800) * Math.PI * 2) * 0.5;
+      const shimVal3 = 0.3 + Math.sin(((t + 800) / 1800) * Math.PI * 2) * 0.5;
+      animMatureKeywordBlock1.style.fillOpacity = Math.max(0.2, Math.min(1, shimVal1));
+      animMatureKeywordBlock2.style.fillOpacity = Math.max(0.2, Math.min(1, shimVal2));
+      animMatureKeywordBlock3.style.fillOpacity = Math.max(0.2, Math.min(1, shimVal3));
+
+      const floatCycle = t % 5000;
+      let c1Y = 0, c1Scale = 1, c1Opacity = 0;
+      if (floatCycle < 2500) {
+        const c1Frac = floatCycle / 2500;
+        if (c1Frac < 0.15) {
+          const inFrac = c1Frac / 0.15; c1Y = lerp(15, 0, easeInOutQuad(inFrac)); c1Scale = lerp(0.95, 1, easeInOutQuad(inFrac)); c1Opacity = inFrac;
+        } else if (c1Frac > 0.85) {
+          const outFrac = (c1Frac - 0.85) / 0.15; c1Y = lerp(0, -10, easeInOutQuad(outFrac)); c1Scale = lerp(1, 0.95, easeInOutQuad(outFrac)); c1Opacity = 1 - outFrac;
+        } else { c1Y = 0; c1Scale = 1; c1Opacity = 1; }
+      }
+      animMatureNotifyCard1.setAttribute('transform', `translate(0, ${c1Y}) scale(${c1Scale})`);
+      animMatureNotifyCard1.style.transformOrigin = "119px 445px";
+      animMatureNotifyCard1.setAttribute('opacity', c1Opacity);
+
+      let c2Y = 0, c2Scale = 1, c2Opacity = 0;
+      if (floatCycle >= 2500) {
+        const c2Frac = (floatCycle - 2500) / 2500;
+        if (c2Frac < 0.15) {
+          const inFrac = c2Frac / 0.15; c2Y = lerp(15, 0, easeInOutQuad(inFrac)); c2Scale = lerp(0.95, 1, easeInOutQuad(inFrac)); c2Opacity = inFrac;
+        } else if (c2Frac > 0.85) {
+          const outFrac = (c2Frac - 0.85) / 0.15; c2Y = lerp(0, -10, easeInOutQuad(outFrac)); c2Scale = lerp(1, 0.95, easeInOutQuad(outFrac)); c2Opacity = 1 - outFrac;
+        } else { c2Y = 0; c2Scale = 1; c2Opacity = 1; }
+      }
+      animMatureNotifyCard2.setAttribute('transform', `translate(0, ${c2Y}) scale(${c2Scale})`);
+      animMatureNotifyCard2.style.transformOrigin = "119px 499px";
+      animMatureNotifyCard2.setAttribute('opacity', c2Opacity);
+    }
+
+    // New 3-screen cinematic sequencer panning logic
+    function updateCinematicTimeline() {
+      const p = state.t / state.duration; // 0 to 1
+      let translateY = 0;
+
+      if (p < 0.25) {
+        translateY = 0; // Screen 1 (Problem) - 3.0s
+      } else if (p >= 0.25 && p < 0.33) {
+        translateY = lerp(0, -800, easeInOutQuad((p - 0.25) / 0.08)); // Scroll to Screen 2 - 1.0s
+      } else if (p >= 0.33 && p < 0.58) {
+        translateY = -800; // Screen 2 (Solution) - 3.0s
+      } else if (p >= 0.58 && p < 0.66) {
+        translateY = lerp(-800, -1600, easeInOutQuad((p - 0.58) / 0.08)); // Scroll to Screen 3 - 1.0s
+      } else {
+        translateY = -1600; // Screen 3 (CTA & Value Props) - 4.0s (Linger!)
+      }
+
+      slidesGroup.setAttribute('transform', `translate(0, ${translateY})`);
+    }
+
+    // True HD Video Recording logic
+    function recordVideo() {
+      if (state.isRecording) return;
+      
+      const wasPlaying = state.isPlaying;
+      state.isPlaying = false;
+      state.isRecording = true;
+      
+      const overlay = document.getElementById('recordingOverlay');
+      const progress = document.getElementById('recordingProgress');
+      const statusText = document.getElementById('recordingStatus');
+      overlay.style.display = 'flex';
+      
+      // Native Reel dimensions
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = 1080;
+      captureCanvas.height = 1920;
+      const ctx = captureCanvas.getContext('2d');
+      
+      const stream = captureCanvas.captureStream(30);
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+      
+      const chunks = [];
+      let recorder;
+      try { recorder = new MediaRecorder(stream, { mimeType: mimeType }); } 
+      catch (e) { recorder = new MediaRecorder(stream); }
+      
+      recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+        const videoURL = window.URL.createObjectURL(videoBlob);
+        const dlLink = document.createElement('a');
+        dlLink.href = videoURL;
+        dlLink.download = `cvglide_HD_reel_${state.theme}.webm`;
+        document.body.appendChild(dlLink);
+        dlLink.click();
+        document.body.removeChild(dlLink);
+        window.URL.revokeObjectURL(videoURL);
+        
+        overlay.style.display = 'none';
+        state.isRecording = false;
+        if (wasPlaying) togglePlay();
+      };
+      
+      const totalFrames = 360; // 12s at 30 FPS (Extended to allow CTA linger!)
+      let currentFrame = 0;
+      recorder.start();
+      
+      function renderNextFrame() {
+        if (currentFrame >= totalFrames) { recorder.stop(); return; }
+        
+        state.t = (currentFrame / totalFrames) * state.duration;
+        updateSvgAnimations();
+        updateCinematicTimeline();
+        
+        // Force SVG to rasterize at pure 1080x1920 for tack-sharp recording!
+        svgEl.setAttribute('width', '1080');
+        svgEl.setAttribute('height', '1920');
+        
+        const serializer = new XMLSerializer();
+        const svgString = serializer.serializeToString(svgEl);
+        
+        svgEl.setAttribute('width', '100%');
+        svgEl.setAttribute('height', '100%');
+        
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const URL = window.URL || window.webkitURL || window;
+        const blobURL = URL.createObjectURL(svgBlob);
+        
+        const frameImg = new Image();
+        frameImg.onload = function() {
+          ctx.fillStyle = '#09090E';
+          ctx.fillRect(0, 0, 1080, 1920);
+          ctx.drawImage(frameImg, 0, 0, 1080, 1920);
+          URL.revokeObjectURL(blobURL);
+          
+          currentFrame++;
+          const pct = Math.round((currentFrame / totalFrames) * 100);
+          progress.style.width = pct + '%';
+          statusText.textContent = `${pct}% completed (${currentFrame}/${totalFrames} frames)`;
+          
+          setTimeout(renderNextFrame, 16);
+        };
+        frameImg.src = blobURL;
+      }
+      setTimeout(renderNextFrame, 500);
+    }
+
+    function loop(timestamp) {
+      if (!state.isPlaying) return;
+      if (!state.lastFrameTime) state.lastFrameTime = timestamp;
+      const delta = timestamp - state.lastFrameTime;
+      state.lastFrameTime = timestamp;
+      
+      state.t += delta * state.speed;
+      if (state.t >= state.duration) state.t = 0;
+      
+      const progressRatio = state.t / state.duration;
+      timelineScrubber.value = Math.round(progressRatio * 1000);
+      timeLabel.textContent = (state.t / 1000).toFixed(1) + 's';
+      
+      updateSvgAnimations();
+      updateCinematicTimeline();
+      
+      requestAnimationFrame(loop);
+    }
+
+    buildCopyCards();
+    applyCopy('option1'); // Auto-load best copy
+    setTheme('mature'); // Auto-load mature theme based on user preference
+    
+    state.lastFrameTime = performance.now();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
