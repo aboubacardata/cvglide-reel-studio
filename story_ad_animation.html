@@ -151,6 +151,24 @@
     .copy-option-card.active .copy-option-badge { background: rgba(29, 158, 117, 0.2); color: #3adea2; }
     .copy-option-preview { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 
+    /* Custom Inputs */
+    .custom-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .custom-input:focus {
+      border-color: var(--accent);
+      background: rgba(29, 158, 117, 0.05);
+    }
+
     /* Recording Overlay */
     #recordingOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(9, 9, 14, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
     .recording-spinner { width: 50px; height: 50px; border: 4px solid rgba(29, 158, 117, 0.2); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -470,6 +488,31 @@
           Copywriting Engine
         </div>
         <div id="copyOptionsContainer"></div>
+        <div style="border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 18px;">
+          <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; letter-spacing: 0.5px;">Custom Copy Customizer</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Screen 1: Top Caption</label>
+              <input type="text" id="input-top1" class="custom-input" oninput="updateCustomCopy()">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Screen 1: Main Hook</label>
+              <input type="text" id="input-top2" class="custom-input" oninput="updateCustomCopy()">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Screen 2: Top Caption</label>
+              <input type="text" id="input-bottom1" class="custom-input" oninput="updateCustomCopy()">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Screen 2: Sub-Hook</label>
+              <input type="text" id="input-bottom2" class="custom-input" oninput="updateCustomCopy()">
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">CTA Button Text</label>
+              <input type="text" id="input-cta" class="custom-input" oninput="updateCustomCopy()">
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -504,6 +547,20 @@
         prop2Title: "Tailored Cover Letters",
         prop2Desc: "Written to hook hiring managers.",
         cta: "Tailor your CV now"
+      },
+      option3: {
+        name: "🚀 Rank 3 — Just Launched!",
+        badge: "Launch Campaign 🎉",
+        desc: "Perfect for announcement day! Highlights that CVGlide is live and ready to elevate job searches.",
+        topLine1: "CVGlide is officially live!",
+        topLine2: "Say goodbye to manual CV edits.",
+        bottomLine1: "Tailor your CV in 60 seconds.",
+        bottomLine2: "Elevate your job search today.",
+        prop1Title: "Role-Aligned CVs",
+        prop1Desc: "Instantly matched to descriptions.",
+        prop2Title: "Tailored Cover Letters",
+        prop2Desc: "Ready to hook hiring managers.",
+        cta: "Try CVGlide free"
       }
     };
 
@@ -607,6 +664,15 @@
       } catch (e) {}
     }
 
+    function adjustTextSizes() {
+      adjustTextSize(txtTopLine1, 24);
+      adjustTextSize(txtTopLine2, 30);
+      adjustTextSize(txtBottomLine1, 30);
+      adjustTextSize(txtBottomLine2, 24);
+      adjustTextSize(txtProp1Title, 26);
+      adjustTextSize(txtProp2Title, 26);
+    }
+
     function applyCopy(key) {
       const option = COPY_OPTIONS[key];
       txtTopLine1.textContent = option.topLine1;
@@ -619,19 +685,36 @@
       txtProp2Desc.textContent = option.prop2Desc;
       txtCta.textContent = option.cta;
 
+      // Sync the custom copy inputs!
+      document.getElementById('input-top1').value = option.topLine1;
+      document.getElementById('input-top2').value = option.topLine2;
+      document.getElementById('input-bottom1').value = option.bottomLine1;
+      document.getElementById('input-bottom2').value = option.bottomLine2;
+      document.getElementById('input-cta').value = option.cta;
+
       // Dynamically auto-fit visual sizes to ensure 0% clipping on all devices
-      adjustTextSize(txtTopLine1, 24);
-      adjustTextSize(txtTopLine2, 30);
-      adjustTextSize(txtBottomLine1, 30);
-      adjustTextSize(txtBottomLine2, 24);
-      adjustTextSize(txtProp1Title, 26);
-      adjustTextSize(txtProp2Title, 26);
+      adjustTextSizes();
     }
 
     function setCopy(key) {
       state.activeCopy = key;
       buildCopyCards();
       applyCopy(key);
+    }
+
+    function updateCustomCopy() {
+      // Clear preset cards active styling since they are customizing
+      const activeCards = document.querySelectorAll('.copy-option-card');
+      activeCards.forEach(card => card.classList.remove('active'));
+      state.activeCopy = null;
+
+      txtTopLine1.textContent = document.getElementById('input-top1').value;
+      txtTopLine2.textContent = document.getElementById('input-top2').value;
+      txtBottomLine1.textContent = document.getElementById('input-bottom1').value;
+      txtBottomLine2.textContent = document.getElementById('input-bottom2').value;
+      txtCta.textContent = document.getElementById('input-cta').value;
+
+      adjustTextSizes();
     }
 
     function setTheme(theme) {
