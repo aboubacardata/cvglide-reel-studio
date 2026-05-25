@@ -1726,16 +1726,8 @@
         // We will build a clean SVG foreignObject to render crisp vector graphics!
         const targetHtml = document.getElementById('adCanvasWrapper').outerHTML;
         
-        // Include full styles to ensure the rasterized SVG matches our preview exactly!
-        const styleSheetText = Array.from(document.styleSheets)
-          .map(styleSheet => {
-            try {
-              return Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n');
-            } catch (e) {
-              return ''; // skip cross-origin rules
-            }
-          })
-          .join('\n');
+        // Include only our local stylesheet to prevent extension-injected or cross-origin stylesheets from breaking SVG loading
+        const styleSheetText = document.querySelector('style').textContent;
 
         const svgWrapper = `
           <svg xmlns="http://www.w3.org/2000/svg" width="${outWidth}" height="${outHeight}">
@@ -1779,6 +1771,17 @@
           ctx.fillStyle = '#09090f';
           ctx.fillRect(0, 0, outWidth, outHeight);
           ctx.drawImage(img, 0, 0, outWidth, outHeight);
+          URL.revokeObjectURL(blobURL);
+          
+          currentFrame++;
+          const pct = Math.round((currentFrame / totalFrames) * 100);
+          progressBar.style.width = pct + '%';
+          statusText.textContent = `${pct}% completed (${currentFrame}/${totalFrames} frames)`;
+          
+          setTimeout(renderFrame, 16);
+        };
+        img.onerror = function(err) {
+          console.error("SVG rasterization failed at frame", currentFrame, err);
           URL.revokeObjectURL(blobURL);
           
           currentFrame++;
