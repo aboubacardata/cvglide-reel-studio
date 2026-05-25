@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CVGlide Ad</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .ad {
+    width: 800px;
+    height: 450px;
+    background: #07071a;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    box-shadow: 0 0 60px rgba(99, 102, 241, 0.2), 0 0 120px rgba(99, 102, 241, 0.08);
+  }
+
+  /* Animated grid bg */
+  .ad::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 8s linear infinite;
+  }
+  @keyframes gridMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 40px; }
+  }
+
+  /* Scene management */
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .scene.active { opacity: 1; pointer-events: all; }
+
+  /* ── SCENE 1: "The Problem" ── */
+  .scene-1 .headline {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #f87171;
+    margin-bottom: 14px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .scene-1 .big-text {
+    font-size: 34px;
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 600px;
+    animation: fadeUp 0.6s 0.15s ease both;
+  }
+  .scene-1 .big-text span { color: #f87171; }
+  .scene-1 .sub {
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 14px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  /* ── SCENE 2: Side-by-side ── */
+  .compare {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    padding: 0 40px;
+    width: 100%;
+  }
+  .resume-card {
+    flex: 1;
+    border-radius: 12px;
+    padding: 16px 14px;
+    position: relative;
+    animation: fadeUp 0.5s ease both;
+  }
+  .resume-card.bad {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.3);
+    animation-delay: 0.1s;
+  }
+  .resume-card.good {
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.3);
+    animation-delay: 0.25s;
+  }
+  .card-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .bad .card-label { color: #f87171; }
+  .good .card-label { color: #34d399; }
+
+  .resume-line {
+    height: 7px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+  }
+  .bad .resume-line { background: rgba(255,255,255,0.1); }
+  .good .resume-line { background: rgba(255,255,255,0.18); }
+
+  .keyword-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+  }
+  .kw {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .kw.missing {
+    background: rgba(239,68,68,0.15);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .kw.found {
+    background: rgba(16,185,129,0.15);
+    color: #34d399;
+    border: 1px solid rgba(16,185,129,0.3);
+    animation: kwPop 0.4s ease both;
+  }
+  @keyframes kwPop {
+    0% { transform: scale(0.7); opacity: 0; }
+    60% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .kw.found:nth-child(1) { animation-delay: 0.4s; }
+  .kw.found:nth-child(2) { animation-delay: 0.55s; }
+  .kw.found:nth-child(3) { animation-delay: 0.7s; }
+  .kw.found:nth-child(4) { animation-delay: 0.85s; }
+  .kw.found:nth-child(5) { animation-delay: 1.0s; }
+
+  .score-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .bad .score-badge {
+    background: #f87171;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(248,113,113,0.5);
+  }
+  .good .score-badge {
+    background: #10b981;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(16,185,129,0.5);
+    animation: badgePop 0.5s 0.2s ease both;
+  }
+  @keyframes badgePop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .score-badge span { font-size: 7px; font-weight: 600; }
+
+  .vs-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+  .vs-text {
+    font-size: 18px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.3);
+  }
+  .vs-arrow {
+    font-size: 22px;
+    color: #6366f1;
+    animation: arrowPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes arrowPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+  }
+
+  .compare-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #a5b4fc;
+    margin-bottom: 16px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  /* ── SCENE 3: CTA ── */
+  .scene-3 .cta-pre {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #a5b4fc;
+    margin-bottom: 12px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .scene-3 .cta-big {
+    font-size: 38px;
+    font-weight: 900;
+    color: #fff;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 580px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+  .scene-3 .cta-big .highlight {
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cta-btn {
+    margin-top: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 14px 32px;
+    border-radius: 50px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(99,102,241,0.5), 0 0 60px rgba(99,102,241,0.2);
+    animation: fadeUp 0.5s 0.25s ease both, btnPulse 2s 1s ease-in-out infinite;
+    letter-spacing: 0.3px;
+  }
+  @keyframes btnPulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(99,102,241,0.5), 0 0 60px rgba(99,102,241,0.2); }
+    50% { box-shadow: 0 0 50px rgba(99,102,241,0.8), 0 0 90px rgba(99,102,241,0.35); }
+  }
+  .cta-btn .arrow { font-size: 18px; }
+  .cta-url {
+    margin-top: 12px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    animation: fadeUp 0.5s 0.4s ease both;
+    letter-spacing: 1px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #38bdf8);
+    z-index: 10;
+    animation: none;
+  }
+
+  /* Logo watermark */
+  .logo-mark {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.25);
+    z-index: 10;
+  }
+  .logo-mark span { color: #6366f1; }
+
+  /* Floating particles */
+  .particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #6366f1;
+    opacity: 0;
+    animation: float linear infinite;
+    z-index: 1;
+  }
+  @keyframes float {
+    0% { transform: translateY(100%); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-500px); opacity: 0; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Replay button */
+  .replay-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    z-index: 20;
+    display: none;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .replay-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="ad" id="ad">
+  <!-- Logo -->
+  <div class="logo-mark">CV<span>Glide</span>.com</div>
+
+  <!-- Floating particles -->
+  <div class="particle" style="left:10%; animation-duration:6s; animation-delay:0s;"></div>
+  <div class="particle" style="left:25%; animation-duration:8s; animation-delay:1s; background:#a78bfa;"></div>
+  <div class="particle" style="left:50%; animation-duration:7s; animation-delay:2s; background:#38bdf8;"></div>
+  <div class="particle" style="left:70%; animation-duration:9s; animation-delay:0.5s;"></div>
+  <div class="particle" style="left:85%; animation-duration:6.5s; animation-delay:3s; background:#a78bfa;"></div>
+  <div class="particle" style="left:40%; animation-duration:7.5s; animation-delay:1.5s; background:#34d399;"></div>
+
+  <!-- SCENE 1: The Problem -->
+  <div class="scene scene-1 active" id="scene1">
+    <div class="headline">⚠ ATS Reality Check</div>
+    <div class="big-text">
+      75% of resumes are<br><span>never seen by humans.</span>
+    </div>
+    <div class="sub">Top ATS systems filter you out on exact keyword matches.</div>
+  </div>
+
+  <!-- SCENE 2: Side-by-side comparison -->
+  <div class="scene scene-2" id="scene2">
+    <div class="compare-label">🔍 ATS Keyword Scan</div>
+    <div class="compare">
+      <!-- BAD resume -->
+      <div class="resume-card bad">
+        <div class="score-badge">31<span>%</span></div>
+        <div class="card-label">✗ Before CVGlide</div>
+        <div class="resume-line" style="width:80%"></div>
+        <div class="resume-line" style="width:60%"></div>
+        <div class="resume-line" style="width:90%"></div>
+        <div class="resume-line" style="width:50%"></div>
+        <div class="resume-line" style="width:70%"></div>
+        <div class="keyword-row">
+          <span class="kw missing">Python ✗</span>
+          <span class="kw missing">Agile ✗</span>
+          <span class="kw missing">AWS ✗</span>
+          <span class="kw missing">CI/CD ✗</span>
+          <span class="kw missing">REST API ✗</span>
+        </div>
+      </div>
+
+      <!-- VS -->
+      <div class="vs-divider">
+        <div class="vs-text">VS</div>
+        <div class="vs-arrow">→</div>
+      </div>
+
+      <!-- GOOD resume -->
+      <div class="resume-card good">
+        <div class="score-badge">94<span>%</span></div>
+        <div class="card-label">✓ After CVGlide</div>
+        <div class="resume-line" style="width:85%"></div>
+        <div class="resume-line" style="width:65%"></div>
+        <div class="resume-line" style="width:90%"></div>
+        <div class="resume-line" style="width:55%"></div>
+        <div class="resume-line" style="width:75%"></div>
+        <div class="keyword-row">
+          <span class="kw found">Python ✓</span>
+          <span class="kw found">Agile ✓</span>
+          <span class="kw found">AWS ✓</span>
+          <span class="kw found">CI/CD ✓</span>
+          <span class="kw found">REST API ✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: CTA -->
+  <div class="scene scene-3" id="scene3">
+    <div class="cta-pre">Free ATS Score — Instant Results</div>
+    <div class="cta-big">
+      Beat the bots.<br>
+      <span class="highlight">Land the interview.</span>
+    </div>
+    <a class="cta-btn" href="https://cvglide.com" target="_blank">
+      Scan My Resume Free <span class="arrow">→</span>
+    </a>
+    <div class="cta-url">cvglide.com · No sign-up required</div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- Replay -->
+  <button class="replay-btn" id="replayBtn" onclick="startAd()">↺ Replay</button>
+</div>
+
+<script>
+  const scenes = ['scene1','scene2','scene3'];
+  const durations = [2800, 3800, 4500]; // ms per scene
+  let currentScene = 0;
+  let progressAnim = null;
+  let sceneTimeout = null;
+
+  function showScene(idx) {
+    scenes.forEach((id, i) => {
+      document.getElementById(id).classList.toggle('active', i === idx);
+    });
+  }
+
+  function animateProgress(duration) {
+    const bar = document.getElementById('progressBar');
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        bar.style.transition = `width ${duration}ms linear`;
+        bar.style.width = '100%';
+      });
+    });
+  }
+
+  function nextScene() {
+    currentScene++;
+    if (currentScene >= scenes.length) {
+      // End — show replay
+      document.getElementById('replayBtn').style.display = 'block';
+      const bar = document.getElementById('progressBar');
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      return;
+    }
+    showScene(currentScene);
+    animateProgress(durations[currentScene]);
+    sceneTimeout = setTimeout(nextScene, durations[currentScene]);
+  }
+
+  function startAd() {
+    document.getElementById('replayBtn').style.display = 'none';
+    currentScene = 0;
+    showScene(0);
+    animateProgress(durations[0]);
+    clearTimeout(sceneTimeout);
+    sceneTimeout = setTimeout(nextScene, durations[0]);
+  }
+
+  // Auto-start
+  startAd();
+</script>
+</body>
+</html>

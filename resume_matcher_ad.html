@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVGlide — Resume Matcher Ad Generator & GIF Simulator</title>
+  <!-- Google Fonts: Outfit (Brand UI) & JetBrains Mono (Tech logs & indicators) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #09090e;
+      --bg-card: rgba(18, 18, 26, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent-green: #1D9E75;
+      --accent-green-glow: rgba(29, 158, 117, 0.35);
+      --accent-red: #E24B4A;
+      --accent-red-glow: rgba(226, 75, 74, 0.35);
+      --accent-indigo: #6366f1;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --glass-panel: rgba(255, 255, 255, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(29, 158, 117, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.06) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 18px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(9, 9, 14, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 40%, var(--accent-green) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .logo-tag {
+      font-size: 11px;
+      background: rgba(29, 158, 117, 0.15);
+      color: #3adea2;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(29, 158, 117, 0.2);
+      font-weight: 500;
+    }
+
+    .dashboard {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      gap: 32px;
+      padding: 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1200px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* PREVIEW CONTAINER */
+    .preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border-radius: 24px;
+      border: 1px solid var(--border-color);
+      padding: 40px 20px;
+      backdrop-filter: blur(20px);
+      min-height: 900px;
+      position: relative;
+    }
+
+    /* PREVIEW ASPECT FRAME WITH SIZES */
+    .ad-viewport-shadow {
+      position: relative;
+      background: #000;
+      border-radius: 16px;
+      padding: 0;
+      box-shadow: 
+        0 25px 60px -15px rgba(0, 0, 0, 0.9), 
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 0 40px 2px rgba(29, 158, 117, 0.06);
+      overflow: hidden;
+      transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* VIEWPORT RATIOS */
+    .ratio-story {
+      width: 450px;
+      height: 800px;
+    }
+    
+    .ratio-square {
+      width: 600px;
+      height: 600px;
+    }
+
+    .ratio-landscape {
+      width: 800px;
+      height: 450px;
+    }
+
+    /* AD LOOP PREVIEW INNER CANVAS */
+    #adCanvasWrapper {
+      position: absolute;
+      inset: 0;
+      background: #09090f;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .ad-watermark {
+      position: absolute;
+      top: 15px;
+      right: 18px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: rgba(0, 0, 0, 0.25);
+      z-index: 20;
+    }
+    
+    .scanning .ad-watermark, .revealed .ad-watermark {
+      color: rgba(0, 0, 0, 0.22);
+    }
+    
+    .ad-watermark span {
+      color: var(--accent-green);
+    }
+
+    /* CONTROLS PANELS */
+    .controls-container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      padding: 24px;
+      backdrop-filter: blur(20px);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+
+    .panel-title svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent-green);
+    }
+
+    /* ASPECT RATIO BUTTONS */
+    .ratio-selector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .ratio-btn {
+      padding: 12px 6px;
+      border-radius: 12px;
+      background: var(--glass-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    
+    .ratio-btn.active, .ratio-btn:hover {
+      background: rgba(29, 158, 117, 0.15);
+      border-color: var(--accent-green);
+      color: #fff;
+    }
+
+    .ratio-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* INPUTS & SELECTS */
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    .input-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .custom-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    
+    .custom-input:focus {
+      border-color: var(--accent-green);
+      background: rgba(29, 158, 117, 0.05);
+      box-shadow: 0 0 10px rgba(29, 158, 117, 0.15);
+    }
+
+    /* COPY PRESET CARDS */
+    .preset-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .preset-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .preset-card.active {
+      background: rgba(29, 158, 117, 0.05);
+      border-color: var(--accent-green);
+    }
+    
+    .preset-card.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--accent-green);
+      border-radius: 12px 0 0 12px;
+    }
+
+    .preset-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .preset-name {
+      font-weight: 700;
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .preset-badge {
+      font-size: 9px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    .preset-card.active .preset-badge {
+      background: rgba(29, 158, 117, 0.2);
+      color: #3adea2;
+    }
+
+    .preset-preview {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* EXPORTER ACCENT BUTTONS */
+    .export-btn {
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-green) 0%, #157c5c 100%);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(29, 158, 117, 0.25);
+      transition: all 0.2s;
+    }
+
+    .export-btn:hover {
+      background: linear-gradient(135deg, #22b687 0%, var(--accent-green) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(29, 158, 117, 0.35);
+    }
+
+    .export-btn.secondary {
+      background: var(--glass-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      box-shadow: none;
+      margin-top: 10px;
+    }
+
+    .export-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-2px);
+    }
+
+    /* ──── PREVIEW AD ANIMATION STYLING (THE GIF ITSELF) ──── */
+    .ad-header-stage {
+      padding: 16px 20px 8px;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      background: #f8fafc; /* Sleek light top header */
+      z-index: 10;
+    }
+
+    .ad-recruiter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      padding: 8px 12px;
+      height: 38px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .recruiter-icon {
+      font-size: 11px;
+      color: #64748b;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .recruiter-icon::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #64748b;
+      border-radius: 50%;
+    }
+
+    .recruiter-search-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #0f172a;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 2px;
+      height: 12px;
+      background: var(--accent-green);
+      margin-left: 2px;
+      animation: blink 0.8s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    .recruiter-results-count {
+      font-size: 9px;
+      font-weight: 700;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #64748b;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+
+    /* AD AD CORE WRITING HOOKS */
+    .ad-headline-area {
+      padding: 16px 20px;
+      text-align: center;
+      z-index: 10;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .ad-headline-1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.25;
+    }
+    .ad-headline-1 span {
+      background: linear-gradient(90deg, var(--accent-red), #f43f5e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .ad-headline-2 {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* AD RESUME SIDE BY SIDE GRID WITH CONTRAST SPLIT BACKGROUND */
+    .ad-resume-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+      position: relative;
+      overflow: hidden;
+      align-items: stretch;
+      background: linear-gradient(90deg, #FCFCFA 50%, #E1F5EE 50%); /* Creative brand split */
+    }
+
+    /* STORY RATIO SHIFTS TO VERTICAL BACKGROUND SPLIT */
+    .ratio-story .ad-resume-grid {
+      background: linear-gradient(180deg, #FCFCFA 50%, #E1F5EE 50%);
+    }
+
+    /* LASER SCAN BAR */
+    .laser-scan-bar {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, transparent, var(--accent-green), var(--accent-indigo), transparent);
+      box-shadow: 
+        0 0 10px var(--accent-green), 
+        0 0 25px rgba(29, 158, 117, 0.5);
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0;
+      top: 0%;
+    }
+
+    /* THE SCANNER RADAR LASER SWEEP (JS TRIGGERED CLASS) */
+    .scanning .laser-scan-bar {
+      opacity: 1;
+      animation: laserSweep 5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes laserSweep {
+      0% { top: 0%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* RESUME CARDS - STYLED AS HIGH-FIDELITY PAPER RESUMES */
+    .ad-resume-card {
+      border-radius: 12px;
+      padding: 16px 14px;
+      position: relative;
+      background: #ffffff; /* Crisp white paper resume */
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      transition: all 0.4s;
+    }
+
+    .ad-resume-card.rejected {
+      border-color: rgba(226, 75, 74, 0.15);
+    }
+    
+    .ad-resume-card.matched {
+      border-color: rgba(29, 158, 117, 0.15);
+    }
+
+    /* AFTER SCAN REVEALS (NEON MATURE GLOWS ON WHITE PAPER CARDS) */
+    .revealed .ad-resume-card.rejected {
+      border-color: var(--accent-red);
+      box-shadow: 0 4px 15px rgba(226, 75, 74, 0.08);
+    }
+    
+    .revealed .ad-resume-card.matched {
+      border-color: var(--accent-green);
+      box-shadow: 0 4px 20px rgba(29, 158, 117, 0.12);
+    }
+
+    .ad-card-label {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    
+    .rejected .ad-card-label { color: var(--accent-red); }
+    .matched .ad-card-label { color: var(--accent-green); }
+
+    /* RESUME TEXT SIMULATOR */
+    .ad-resume-bullets {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex: 1;
+    }
+
+    .ad-bullet-item {
+      font-size: 10px;
+      color: #334155; /* Slate 700 - Highly readable */
+      line-height: 1.4;
+      padding-left: 10px;
+      position: relative;
+    }
+
+    .ad-bullet-item::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: #94a3b8;
+    }
+
+    .keyword-highlight {
+      font-weight: 700;
+      padding: 1px 3px;
+      border-radius: 3px;
+      transition: all 0.3s;
+    }
+
+    .rejected .keyword-highlight {
+      color: var(--accent-red);
+      background: rgba(226, 75, 74, 0.1);
+      text-decoration: line-through;
+    }
+
+    .matched .keyword-highlight {
+      color: var(--accent-green);
+      background: rgba(29, 158, 117, 0.15);
+      font-weight: 800;
+    }
+
+    /* KEYWORD PILLS */
+    .ad-keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+      padding-top: 8px;
+    }
+
+    .ad-kw-pill {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      letter-spacing: 0.2px;
+    }
+
+    .rejected .ad-kw-pill {
+      background: rgba(226, 75, 74, 0.08);
+      color: var(--accent-red);
+      border: 1px solid rgba(226, 75, 74, 0.15);
+    }
+
+    .matched .ad-kw-pill {
+      background: rgba(29, 158, 117, 0.08);
+      color: var(--accent-green);
+      border: 1px solid rgba(29, 158, 117, 0.15);
+    }
+
+    /* MATCH GAUGE BADGES */
+    .ad-score-gauge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      border: 2px solid rgba(0,0,0,0.06);
+    }
+
+    .ad-score-val {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1;
+      font-family: 'JetBrains Mono', monospace;
+      color: #64748b;
+    }
+
+    .ad-score-lbl {
+      font-size: 6px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    .revealed .rejected .ad-score-gauge {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 10px var(--accent-red-glow);
+      color: var(--accent-red);
+      background: #fff;
+    }
+    
+    .revealed .rejected .ad-score-val {
+      color: var(--accent-red);
+    }
+
+    .revealed .matched .ad-score-gauge {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green-glow);
+      color: var(--accent-green);
+      background: #fff;
+    }
+    
+    .revealed .matched .ad-score-val {
+      color: var(--accent-green);
+    }
+
+    /* STATUS STYLED BADGES */
+    .ad-card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 3px 6px;
+      border-radius: 4px;
+      align-self: flex-start;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.4s;
+    }
+
+    .revealed .ad-card-badge {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .rejected .ad-card-badge {
+      background: #fee2e2;
+      color: var(--accent-red);
+      border: 1px solid rgba(226, 75, 74, 0.2);
+    }
+
+    .matched .ad-card-badge {
+      background: #d1fae5;
+      color: var(--accent-green);
+      border: 1px solid rgba(29, 158, 117, 0.2);
+    }
+
+    /* AD LOOP FOOTER CTA - DEEP BRAND SPACE BLACK BACKGROUND */
+    .ad-footer-cta {
+      padding: 14px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #09090e; /* Matches CVGlide brand space theme */
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 10;
+    }
+
+    .ad-cta-btn {
+      width: 100%;
+      max-width: 280px;
+      padding: 11px 0;
+      border-radius: 50px;
+      background: linear-gradient(135deg, var(--accent-green) 0%, #157c5c 100%);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 15px rgba(29, 158, 117, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    
+    .ad-cta-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(29, 158, 117, 0.55);
+    }
+    
+    .ad-cta-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke-width: 2.5;
+    }
+
+    .ad-cta-sub {
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ──── SIZES SCALING HACKS DEPENDING ON VIEWPORTS ──── */
+    
+    /* STORY VIEW SCALING */
+    .ratio-story .ad-headline-1 {
+      font-size: 20px;
+    }
+    .ratio-story .ad-resume-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+    }
+    .ratio-story .ad-score-gauge {
+      width: 38px;
+      height: 38px;
+    }
+    .ratio-story .ad-score-val {
+      font-size: 11px;
+    }
+
+    /* LANDSCAPE VIEW SCALING */
+    .ratio-landscape .ad-resume-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .ratio-landscape .ad-header-stage {
+      padding: 10px 20px 4px;
+    }
+    .ratio-landscape .ad-headline-area {
+      padding: 10px 20px;
+    }
+    .ratio-landscape .ad-headline-1 {
+      font-size: 18px;
+    }
+    .ratio-landscape .ad-footer-cta {
+      padding: 10px 20px 10px;
+    }
+
+    /* TIMELINE RANGE SLIDER */
+    .timeline-widget {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .play-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent-indigo);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+    }
+    
+    .play-btn:hover {
+      background: #4f46e5;
+      transform: scale(1.05);
+    }
+    
+    .play-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .scrubber-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      outline: none;
+    }
+    
+    .scrubber-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--accent-indigo);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .time-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-muted);
+      min-width: 48px;
+      text-align: right;
+    }
+
+    /* OVERLAYS & MODALS */
+    .overlay-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(7, 7, 10, 0.95);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .recording-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(29, 158, 117, 0.2);
+      border-top: 4px solid var(--accent-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
+
+    .modal-card {
+      background: #11111a;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      width: 90%;
+      max-width: 550px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-close {
+      align-self: flex-end;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    .code-area {
+      background: #060609;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #3adea2;
+      overflow-x: auto;
+      max-height: 250px;
+      white-space: pre;
+    }
+
+    /* FLOAT PARTICLES */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      opacity: 0;
+      pointer-events: none;
+      animation: floatUp linear infinite;
+    }
+    
+    @keyframes floatUp {
+      0% { transform: translateY(105%) scale(0.5); opacity: 0; }
+      15% { opacity: 0.6; }
+      85% { opacity: 0.3; }
+      100% { transform: translateY(-20%) scale(1.2); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HD Video Rendering Overlay -->
+  <div id="recordingOverlay" class="overlay-modal" style="display: none;">
+    <div class="recording-spinner"></div>
+    <div style="font-size: 24px; font-weight: 800; color: #fff;">Generating Cinematic Ad Export...</div>
+    <div style="font-size: 14px; color: var(--text-muted); text-align: center; max-width: 360px; line-height: 1.5;">
+      Rasterizing premium vector canvas frames. Please do not minimize or close this tab.
+    </div>
+    <div style="width: 320px; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin-top: 10px;">
+      <div id="recordingProgress" style="width: 0%; height: 100%; background: var(--accent-green); transition: width 0.05s;"></div>
+    </div>
+    <div id="recordingStatus" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent-green);">0% (0/240 frames)</div>
+  </div>
+
+  <!-- Embed Code Modal -->
+  <div id="embedModal" class="overlay-modal" style="display: none;">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size: 18px; font-weight: 800; color: #fff;">Copy Embed Widget Code</h3>
+        <button class="modal-close" onclick="toggleEmbedModal(false)">Close</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+        Paste this responsive, self-contained iframe widget onto any section of your website (e.g. CVGlide.com) to provide a stunning interactive comparison tool for your visitors.
+      </p>
+      <div class="code-area" id="embedCodeBox"></div>
+      <button class="export-btn" onclick="copyEmbedCode()">Copy to Clipboard</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px;">
+        <circle cx="50" cy="50" r="46" stroke="#1D9E75" stroke-width="8" fill="rgba(29, 158, 117, 0.05)" />
+        <path d="M30 40C30 35 35 30 50 30C65 30 70 38 70 45C70 55 50 55 50 62C50 66 48 68 45 68" stroke="#1D9E75" stroke-width="8" stroke-linecap="round" />
+        <circle cx="45" cy="78" r="5" fill="#1D9E75" />
+      </svg>
+      <div>
+        <span class="logo-text">CVGlide</span>
+        <span class="logo-tag">Bespoke Ad Studio</span>
+      </div>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button class="ratio-btn" onclick="window.open('index.html','_self')" style="padding:8px 16px; flex-direction:row; font-size:13px;">
+        ← Back to Reels
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard -->
+  <div class="dashboard">
+    
+    <!-- LEFT: THE AD CANVAS PREVIEW -->
+    <div class="preview-container">
+      <div class="ad-viewport-shadow ratio-square" id="viewportFrame">
+        
+        <!-- PURE HTML AD CONTAINER WRAPPER -->
+        <div id="adCanvasWrapper" class="scanning">
+          
+          <!-- Subtle Floating Glow Particles -->
+          <div class="particle" style="left:15%; bottom:0; animation-duration:8s; animation-delay:0s;"></div>
+          <div class="particle" style="left:40%; bottom:0; animation-duration:11s; animation-delay:1.5s; background:var(--accent-green);"></div>
+          <div class="particle" style="left:70%; bottom:0; animation-duration:9s; animation-delay:3s; background:var(--accent-green);"></div>
+          <div class="particle" style="left:85%; bottom:0; animation-duration:7s; animation-delay:0.5s;"></div>
+          
+          <div class="ad-watermark">CV<span>Glide</span>.com</div>
+
+          <!-- STAGE 1: Greenhouse / ATS Mock Recruiter Search Console -->
+          <div class="ad-header-stage">
+            <div class="ad-recruiter-bar">
+              <div class="recruiter-icon">Recruiter Search</div>
+              <div class="recruiter-search-text" id="mockRecruiterSearch">
+                <span></span><span class="cursor-blink"></span>
+              </div>
+              <div class="recruiter-results-count" id="mockResultsCount">Filtered: 142</div>
+            </div>
+          </div>
+
+          <!-- STAGE 2: AD headlines -->
+          <div class="ad-headline-area">
+            <div class="ad-headline-1" id="adHeadline">
+              Recruiters search for exact terms. <span>You are filtered out.</span>
+            </div>
+            <div class="ad-headline-2" id="adSubHook">
+              Left: Unoptimized resume using synonym phrases. Right: Optimized by CVGlide.
+            </div>
+          </div>
+
+          <!-- STAGE 3: RESUMES COMPARE GRID -->
+          <div class="ad-resume-grid" id="adResumeGrid">
+            
+            <!-- Laser Sweeper Scanner -->
+            <div class="laser-scan-bar" id="laserScanBar"></div>
+
+            <!-- UNOPTIMIZED REJECTED RESUME -->
+            <div class="ad-resume-card rejected">
+              <div class="ad-score-gauge">
+                <span class="ad-score-val" id="scoreLeft">0%</span>
+                <span class="ad-score-lbl">Score</span>
+              </div>
+              <div>
+                <div class="ad-card-badge">✗ Filtered Out</div>
+                <div class="ad-card-label">Rejected Synonyms</div>
+              </div>
+              <div class="ad-resume-bullets" id="bulletsLeft">
+                <!-- Bullets loaded dynamically -->
+              </div>
+              <div class="ad-keyword-list" id="keywordsLeft">
+                <!-- Pills loaded dynamically -->
+              </div>
+            </div>
+
+            <!-- OPTIMIZED MATCHED RESUME -->
+            <div class="ad-resume-card matched">
+              <div class="ad-score-gauge">
+                <span class="ad-score-val" id="scoreRight">0%</span>
+                <span class="ad-score-lbl">Score</span>
+              </div>
+              <div>
+                <div class="ad-card-badge">✓ Selected</div>
+                <div class="ad-card-label">CVGlide Optimized</div>
+              </div>
+              <div class="ad-resume-bullets" id="bulletsRight">
+                <!-- Bullets loaded dynamically -->
+              </div>
+              <div class="ad-keyword-list" id="keywordsRight">
+                <!-- Pills loaded dynamically -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- STAGE 4: AD CTA FOOTER -->
+          <div class="ad-footer-cta">
+            <a class="ad-cta-btn" id="adCtaBtn" href="https://cvglide.com" target="_blank">
+              Scan My Resume Free
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+              </svg>
+            </a>
+            <div class="ad-cta-sub" id="adCtaUrl">cvglide.com • Beat the Bots</div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: CONTROLS PANEL & DYNAMIC CUSTOMIZATIONS -->
+    <div class="controls-container">
+      
+      <!-- EXPORT ACTIONS -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+          </svg>
+          Export Cinematic High-converting Ads
+        </div>
+        <button class="export-btn" onclick="recordVideoAd()">
+          <svg style="width:16px; height:16px;" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" /></svg>
+          Record & Download Video Ad (WebM/GIF)
+        </button>
+        <button class="export-btn secondary" onclick="generateEmbedCode()">
+          ⇄ Get Embeddable Website Widget Code
+        </button>
+      </div>
+
+      <!-- ASPECT RATIO SELECTOR -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v16.5h16.5V3.75H3.75zm15 15H5.25V5.25h13.5v13.5z"></path>
+          </svg>
+          Select Ad Aspect Ratio & Format
+        </div>
+        <div class="ratio-selector-grid">
+          <button class="ratio-btn active" id="btnRatioSquare" onclick="setRatio('square')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+            Square (1:1)<br><span style="font-size:9px; font-weight:400; opacity:0.6;">Feed Ads</span>
+          </button>
+          <button class="ratio-btn" id="btnRatioStory" onclick="setRatio('story')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="3"/></svg>
+            Story/Reel (9:16)<br><span style="font-size:9px; font-weight:400; opacity:0.6;">Mobile Reels</span>
+          </button>
+          <button class="ratio-btn" id="btnRatioLandscape" onclick="setRatio('landscape')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/></svg>
+            Banner (16:9)<br><span style="font-size:9px; font-weight:400; opacity:0.6;">LinkedIn Video</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- TIMELINE SCRUBBER -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"></path>
+          </svg>
+          Ad Loop Controller
+        </div>
+        <div class="timeline-widget">
+          <div class="scrubber-row">
+            <button class="play-btn" id="playBtn" onclick="togglePlayState()">
+              <svg id="playIcon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <input type="range" id="loopTimeline" class="scrubber-slider" min="0" max="1000" value="0" oninput="onTimelineScrub(this.value)">
+            <span id="loopTimeLabel" class="time-label">0.0s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECRUITER KEYWORDS (THE ENGINE CONTROLS) -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z"></path>
+          </svg>
+          Bespoke ATS Synonym Engine
+        </div>
+        <div class="input-group">
+          <label>Target Recruiters Keywords (Comma separated)</label>
+          <input type="text" id="keywordsInput" class="custom-input" value="Python, Agile, AWS" oninput="syncCustomEngine()">
+          <p style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+            Type any keywords. The generator will automatically build exact bullet points for the optimized CV and synonym phrase bullet points for the unoptimized CV!
+          </p>
+        </div>
+      </div>
+
+      <!-- DYNAMIC Wording Copywriter -->
+      <div class="panel">
+        <div class="panel-title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path>
+          </svg>
+          Ad Copy & Hooks Presets
+        </div>
+        
+        <div id="presetsContainer">
+          <!-- Preset buttons loaded here -->
+        </div>
+
+        <div style="border-top:1px solid var(--border-color); margin-top:18px; padding-top:18px;">
+          <div style="font-size:12px; font-weight:700; color:var(--accent-indigo); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">Custom Copy Customizer</div>
+          
+          <div class="input-group">
+            <label>Ad Headline Hook</label>
+            <input type="text" id="copyInputHeadline" class="custom-input" oninput="syncManualCopy()">
+          </div>
+          <div class="input-group">
+            <label>Ad Subtitle / Caption</label>
+            <input type="text" id="copyInputSub" class="custom-input" oninput="syncManualCopy()">
+          </div>
+          <div class="input-group">
+            <label>CTA Button Hook</label>
+            <input type="text" id="copyInputCta" class="custom-input" oninput="syncManualCopy()">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ATS SYNONYM DICTIONARY (THE SECRET BESPOKE POWER!)
+    const SYNONYM_DICT = {
+      "python": {
+        synonym: "scripting",
+        bulletOpt: "Engineered scalable data backend pipelines using Python.",
+        bulletSub: "Engineered scalable data backend pipelines using scripting."
+      },
+      "agile": {
+        synonym: "scrum",
+        bulletOpt: "Spearheaded quarterly project deliverables under Agile methodologies.",
+        bulletSub: "Spearheaded quarterly project deliverables under Scrum methodologies."
+      },
+      "leadership": {
+        synonym: "management",
+        bulletOpt: "Demonstrated strong Leadership overseeing a team of 12 engineers.",
+        bulletSub: "Demonstrated strong management overseeing a team of 12 engineers."
+      },
+      "kpi": {
+        synonym: "metrics",
+        bulletOpt: "Exceeded all departmental KPI targets for the fiscal year.",
+        bulletSub: "Exceeded all departmental metrics targets for the fiscal year."
+      },
+      "machine learning": {
+        synonym: "artificial intelligence",
+        bulletOpt: "Deployed Machine Learning models to predict customer churn.",
+        bulletSub: "Deployed artificial intelligence models to predict customer churn."
+      },
+      "ui/ux": {
+        synonym: "web design",
+        bulletOpt: "Redesigned the main dashboard using modern UI/UX principles.",
+        bulletSub: "Redesigned the main dashboard using modern web design principles."
+      },
+      "customer service": {
+        synonym: "client support",
+        bulletOpt: "Awarded top performer in Customer Service for Q3.",
+        bulletSub: "Awarded top performer in client support for Q3."
+      },
+      "project management": {
+        synonym: "project coordination",
+        bulletOpt: "Led cross-functional teams in software Project Management.",
+        bulletSub: "Led cross-functional teams in software project coordination."
+      },
+      "software engineer": {
+        synonym: "programmer",
+        bulletOpt: "Worked as a Software Engineer building scalable applications.",
+        bulletSub: "Worked as a programmer building scalable applications."
+      },
+      "b2b sales": {
+        synonym: "account management",
+        bulletOpt: "Drove $2M in new revenue through enterprise B2B Sales.",
+        bulletSub: "Drove $2M in new revenue through enterprise account management."
+      },
+      "aws": {
+        synonym: "cloud servers",
+        bulletOpt: "Migrated legacy systems to cloud-native infrastructure on AWS.",
+        bulletSub: "Migrated legacy systems to cloud-native infrastructure on cloud servers."
+      },
+      "data analysis": {
+        synonym: "analytics",
+        bulletOpt: "Performed advanced Data Analysis to increase revenue by 15%.",
+        bulletSub: "Performed advanced analytics to increase revenue by 15%."
+      }
+    };
+
+    // COPYWRITING AD PRESETS
+    const PRESETS = {
+      preset1: {
+        name: "🥇 Hook 1: Simple Keyword Traps",
+        badge: "Highest Score ⚡",
+        headline: "Recruiters search 'Python'. Your CV says 'scripting'. Filtered Out.",
+        sub: "Top recruiter software scores resumes on exact string matches. Don't let a bot hide your talent.",
+        cta: "Scan Resume with CVGlide Free"
+      },
+      preset2: {
+        name: "🥈 Hook 2: Beat the Recruiter Bots",
+        badge: "High Click-Through 🎯",
+        headline: "A recruiter searches 'Agile'. You wrote 'Scrum'. Match score: 0%.",
+        sub: "Top ATS systems test for exact keyword frequency and formatting. We ensure you match 100%.",
+        cta: "Test Your Match Score Free"
+      },
+      preset3: {
+        name: "🚀 Hook 3: The Competitive Edge",
+        badge: "Launch Campaign ⚡",
+        headline: "In a crowded job market, a generic resume gets ignored.",
+        sub: "With fierce competition, you must tailor your CV for every single job. See exactly the keywords you're missing.",
+        cta: "Tailor Your Resume Free"
+      }
+    };
+
+    // AD STUDIO CORE STATE
+    const state = {
+      isPlaying: true,
+      t: 0,
+      duration: 8000, // 8.0 seconds total loop time
+      speed: 1.0,
+      ratio: "square",
+      activePreset: "preset1",
+      lastFrame: 0,
+      isRecording: false,
+      keywords: ["Python", "Agile", "AWS"]
+    };
+
+    // DOM CACHING
+    const viewportFrame = document.getElementById('viewportFrame');
+    const mockSearch = document.getElementById('mockRecruiterSearch');
+    const mockResults = document.getElementById('mockResultsCount');
+    const laserScan = document.getElementById('laserScanBar');
+    const adCanvasWrapper = document.getElementById('adCanvasWrapper');
+    const playIcon = document.getElementById('playIcon');
+    const scrubber = document.getElementById('loopTimeline');
+    const timeLabel = document.getElementById('loopTimeLabel');
+    
+    // Resume DOM Cache
+    const bulletsLeft = document.getElementById('bulletsLeft');
+    const bulletsRight = document.getElementById('bulletsRight');
+    const keywordsLeft = document.getElementById('keywordsLeft');
+    const keywordsRight = document.getElementById('keywordsRight');
+    const scoreLeftText = document.getElementById('scoreLeft');
+    const scoreRightText = document.getElementById('scoreRight');
+    
+    // Copy Customizer Inputs
+    const inputHeadline = document.getElementById('copyInputHeadline');
+    const inputSub = document.getElementById('copyInputSub');
+    const inputCta = document.getElementById('copyInputCta');
+    
+    // Ad Canvas Live Labels
+    const adHeadline = document.getElementById('adHeadline');
+    const adSubHook = document.getElementById('adSubHook');
+    const adCtaBtn = document.getElementById('adCtaBtn');
+
+    // 1. CHOOSE RATIO VIEWPORTS
+    function setRatio(ratio) {
+      state.ratio = ratio;
+      viewportFrame.className = "ad-viewport-shadow";
+      
+      if (ratio === "square") {
+        viewportFrame.classList.add("ratio-square");
+      } else if (ratio === "story") {
+        viewportFrame.classList.add("ratio-story");
+      } else {
+        viewportFrame.classList.add("ratio-landscape");
+      }
+      
+      document.getElementById('btnRatioSquare').classList.toggle('active', ratio === 'square');
+      document.getElementById('btnRatioStory').classList.toggle('active', ratio === 'story');
+      document.getElementById('btnRatioLandscape').classList.toggle('active', ratio === 'landscape');
+    }
+
+    // 2. DYNAMIC RESUME GENERATOR ENGINE (BESPOKE SYSTEM!)
+    function generateDynamicResumes() {
+      const kws = state.keywords;
+      
+      bulletsLeft.innerHTML = '';
+      bulletsRight.innerHTML = '';
+      keywordsLeft.innerHTML = '';
+      keywordsRight.innerHTML = '';
+      
+      let leftScore = 12;
+      let rightScore = 98;
+
+      // Populate tags & bullet-points dynamically based on queries
+      kws.forEach((rawKw, index) => {
+        const kwClean = rawKw.trim();
+        if (!kwClean) return;
+        const kwLower = kwClean.toLowerCase();
+        
+        let subWord = "skills linked to " + kwClean;
+        let bOpt = `Drove critical engineering operations leveraging ${kwClean} in production.`;
+        let bSub = `Drove critical engineering operations leveraging ${subWord} in production.`;
+
+        // If we know this keyword, use our premium bespoke dictionary!
+        if (SYNONYM_DICT[kwLower]) {
+          subWord = SYNONYM_DICT[kwLower].synonym;
+          bOpt = SYNONYM_DICT[kwLower].bulletOpt;
+          bSub = SYNONYM_DICT[kwLower].bulletSub;
+        }
+
+        // Highlight Keywords
+        const optHighlighted = bOpt.replace(new RegExp(`\\b${kwClean}\\b`, 'gi'), `<span class="keyword-highlight">${kwClean}</span>`);
+        const subHighlighted = bSub.replace(new RegExp(`\\b${subWord}\\b`, 'gi'), `<span class="keyword-highlight">${subWord}</span>`);
+
+        // Left Resume Bullet (Synonym / Rejected)
+        const bLeftEl = document.createElement('div');
+        bLeftEl.className = 'ad-bullet-item';
+        bLeftEl.innerHTML = subHighlighted;
+        bulletsLeft.appendChild(bLeftEl);
+
+        // Right Resume Bullet (Tailored / Selected)
+        const bRightEl = document.createElement('div');
+        bRightEl.className = 'ad-bullet-item';
+        bRightEl.innerHTML = optHighlighted;
+        bulletsRight.appendChild(bRightEl);
+
+        // Left Pill tag (Red Cross)
+        const pillLeft = document.createElement('span');
+        pillLeft.className = 'ad-kw-pill';
+        pillLeft.innerHTML = `${kwClean} ✗`;
+        keywordsLeft.appendChild(pillLeft);
+
+        // Right Pill tag (Green Check)
+        const pillRight = document.createElement('span');
+        pillRight.className = 'ad-kw-pill';
+        pillRight.innerHTML = `${kwClean} ✓`;
+        keywordsRight.appendChild(pillRight);
+      });
+
+      // Handle scores based on matching count
+      if (kws.length === 0) {
+        leftScore = 0;
+        rightScore = 0;
+      } else {
+        leftScore = Math.min(25, Math.round(100 / (kws.length + 2)));
+        rightScore = 98;
+      }
+
+      state.scoreLeftFinal = leftScore;
+      state.scoreRightFinal = rightScore;
+    }
+
+    // 3. COPY PRESET INJECTOR
+    function renderPresets() {
+      const container = document.getElementById('presetsContainer');
+      container.innerHTML = '';
+      
+      Object.keys(PRESETS).forEach(key => {
+        const option = PRESETS[key];
+        const isActive = key === state.activePreset;
+        
+        const card = document.createElement('div');
+        card.className = `preset-card ${isActive ? 'active' : ''}`;
+        card.onclick = () => selectPreset(key);
+        
+        card.innerHTML = `
+          <div class="preset-header">
+            <span class="preset-name">${option.name}</span>
+            <span class="preset-badge">${option.badge}</span>
+          </div>
+          <div class="preset-preview">${option.headline}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectPreset(key) {
+      state.activePreset = key;
+      renderPresets();
+      
+      const copy = PRESETS[key];
+      adHeadline.innerHTML = copy.headline.replace(/["']([^"']+)["']/g, '<span>"$1"</span>');
+      adSubHook.textContent = copy.sub;
+      adCtaBtn.innerHTML = `${copy.cta} <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>`;
+      
+      // Update custom controls
+      inputHeadline.value = copy.headline;
+      inputSub.value = copy.sub;
+      inputCta.value = copy.cta;
+    }
+
+    function syncManualCopy() {
+      state.activePreset = null;
+      renderPresets();
+      
+      const hl = inputHeadline.value;
+      adHeadline.innerHTML = hl.replace(/["']([^"']+)["']/g, '<span>"$1"</span>');
+      adSubHook.textContent = inputSub.value;
+      adCtaBtn.innerHTML = `${inputCta.value} <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>`;
+    }
+
+    function syncCustomEngine() {
+      const val = document.getElementById('keywordsInput').value;
+      state.keywords = val.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      generateDynamicResumes();
+    }
+
+    // 4. TIMELINE LOOP & ANIMATION CONTROLLER
+    function togglePlayState() {
+      state.isPlaying = !state.isPlaying;
+      if (state.isPlaying) {
+        playIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        state.lastFrame = performance.now();
+        requestAnimationFrame(adAnimationLoop);
+      } else {
+        playIcon.innerHTML = '<polygon points="8,5 19,12 8,19" />';
+      }
+    }
+
+    function onTimelineScrub(val) {
+      state.t = (val / 1000) * state.duration;
+      timeLabel.textContent = (state.t / 1000).toFixed(1) + 's';
+      renderAdTimelineState();
+    }
+
+    // LERP HELPER
+    function lerp(a, b, pct) {
+      return a + (b - a) * pct;
+    }
+    
+    function easeInOutQuad(x) {
+      return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    }
+
+    // THE CINEMATIC TIMELINE STAGES COMPILER
+    function renderAdTimelineState() {
+      const t = state.t;
+      const dur = state.duration;
+      const p = t / dur; // percentage 0 to 1
+
+      // STAGE A: Recruiter Dashboard Keyword Typing (0% to 25% loop)
+      const keywordString = state.keywords.join(" and ");
+      const mockField = mockSearch.querySelector('span');
+      
+      const typeFraction = Math.min(1, p / 0.22); // finishes typing at 22% time
+      const charsToShow = Math.floor(keywordString.length * typeFraction);
+      mockField.textContent = keywordString.substring(0, charsToShow);
+
+      if (p < 0.25) {
+        // Typing: scanner hidden, score gauges zeroed
+        adCanvasWrapper.classList.remove('scanning', 'revealed');
+        laserScan.style.opacity = '0';
+        laserScan.style.top = '0%';
+        scoreLeftText.textContent = "0%";
+        scoreRightText.textContent = "0%";
+        mockResults.textContent = "Matching...";
+        mockResults.style.background = "#f1f5f9";
+        mockResults.style.color = "#64748b";
+        mockResults.style.borderColor = "rgba(0,0,0,0.05)";
+      } 
+      
+      // STAGE B: Sweep Scanning Laser & Radar (25% to 65% loop)
+      else if (p >= 0.25 && p < 0.65) {
+        adCanvasWrapper.classList.add('scanning');
+        adCanvasWrapper.classList.remove('revealed');
+        
+        const scanFraction = (p - 0.25) / 0.40; // scales 0 to 1
+        laserScan.style.opacity = '1';
+        laserScan.style.top = (scanFraction * 100) + '%';
+        
+        mockResults.textContent = `Scanning: ${Math.round(scanFraction * 100)}%`;
+        mockResults.style.background = "#FEF3C7";
+        mockResults.style.color = "#D97706";
+        mockResults.style.borderColor = "rgba(217,119,6,0.15)";
+
+        // Ticking scores up live
+        const currentLeft = Math.round(lerp(0, state.scoreLeftFinal, scanFraction));
+        const currentRight = Math.round(lerp(0, state.scoreRightFinal, scanFraction));
+        
+        scoreLeftText.textContent = `${currentLeft}%`;
+        scoreRightText.textContent = `${currentRight}%`;
+      } 
+      
+      // STAGE C: Linger on Results & Call to Action (65% to 100% loop)
+      else {
+        adCanvasWrapper.classList.remove('scanning');
+        adCanvasWrapper.classList.add('revealed');
+        
+        laserScan.style.opacity = '0';
+        laserScan.style.top = '100%';
+        
+        scoreLeftText.textContent = `${state.scoreLeftFinal}%`;
+        scoreRightText.textContent = `${state.scoreRightFinal}%`;
+        
+        mockResults.textContent = `Matched: ${state.scoreRightFinal}%!`;
+        mockResults.style.background = "#d1fae5";
+        mockResults.style.color = "#1D9E75";
+        mockResults.style.borderColor = "rgba(29,158,117,0.15)";
+      }
+    }
+
+    function adAnimationLoop(timestamp) {
+      if (!state.isPlaying) return;
+      if (!state.lastFrame) state.lastFrame = timestamp;
+      const delta = timestamp - state.lastFrame;
+      state.lastFrame = timestamp;
+
+      state.t += delta * state.speed;
+      if (state.t >= state.duration) {
+        state.t = 0; // loop back
+      }
+
+      // Update scrubber slider & label
+      scrubber.value = Math.round((state.t / state.duration) * 1000);
+      timeLabel.textContent = (state.t / 1000).toFixed(1) + 's';
+
+      renderAdTimelineState();
+      
+      requestAnimationFrame(adAnimationLoop);
+    }
+
+    // 5. RASTERIZE & EXPORT AS HIGH DEFINITION WEBM
+    function recordVideoAd() {
+      if (state.isRecording) return;
+      
+      const wasPlaying = state.isPlaying;
+      state.isPlaying = false;
+      state.isRecording = true;
+      
+      const overlay = document.getElementById('recordingOverlay');
+      const progressBar = document.getElementById('recordingProgress');
+      const statusText = document.getElementById('recordingStatus');
+      overlay.style.display = 'flex';
+      
+      // Canvas capturing dimension variables (crisp multiplier!)
+      let outWidth = 1080;
+      let outHeight = 1080;
+      
+      if (state.ratio === "story") {
+        outWidth = 1080;
+        outHeight = 1920;
+      } else if (state.ratio === "landscape") {
+        outWidth = 1920;
+        outHeight = 1080;
+      }
+
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = outWidth;
+      captureCanvas.height = outHeight;
+      const ctx = captureCanvas.getContext('2d');
+      
+      const stream = captureCanvas.captureStream(30);
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+      
+      const chunks = [];
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: mimeType });
+      } catch (e) {
+        recorder = new MediaRecorder(stream);
+      }
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+      
+      recorder.onstop = () => {
+        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+        const videoURL = window.URL.createObjectURL(videoBlob);
+        const dlLink = document.createElement('a');
+        dlLink.href = videoURL;
+        dlLink.download = `cvglide_resume_matcher_ad_${state.ratio}.webm`;
+        document.body.appendChild(dlLink);
+        dlLink.click();
+        document.body.removeChild(dlLink);
+        window.URL.revokeObjectURL(videoURL);
+        
+        overlay.style.display = 'none';
+        state.isRecording = false;
+        if (wasPlaying) togglePlayState();
+      };
+      
+      const totalFrames = 240; // 8 seconds at 30 FPS
+      let currentFrame = 0;
+      recorder.start();
+      
+      function renderFrame() {
+        if (currentFrame >= totalFrames) {
+          recorder.stop();
+          return;
+        }
+        
+        state.t = (currentFrame / totalFrames) * state.duration;
+        renderAdTimelineState();
+        
+        // Rasterize the target HTML markup into the canvas!
+        // We will build a clean SVG foreignObject to render crisp vector graphics!
+        const targetHtml = document.getElementById('adCanvasWrapper').outerHTML;
+        
+        // Include full styles to ensure the rasterized SVG matches our preview exactly!
+        const styleSheetText = Array.from(document.styleSheets)
+          .map(styleSheet => {
+            try {
+              return Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n');
+            } catch (e) {
+              return ''; // skip cross-origin rules
+            }
+          })
+          .join('\n');
+
+        const svgWrapper = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="${outWidth}" height="${outHeight}">
+            <foreignObject width="100%" height="100%">
+              <div xmlns="http://www.w3.org/1999/xhtml">
+                <style>
+                  ${styleSheetText}
+                  #adCanvasWrapper {
+                    position: relative;
+                    width: ${outWidth}px;
+                    height: ${outHeight}px;
+                    background: #09090f;
+                  }
+                  .ad-recruiter-bar { height: 50px; font-size: 16px; }
+                  .recruiter-search-text { font-size: 16px; }
+                  .ad-headline-1 { font-size: 32px; }
+                  .ad-headline-2 { font-size: 18px; }
+                  .ad-bullet-item { font-size: 15px; }
+                  .ad-card-label { font-size: 13px; }
+                  .ad-score-gauge { width: 70px; height: 70px; }
+                  .ad-score-val { font-size: 20px; }
+                  .ad-card-badge { font-size: 13px; }
+                  .ad-kw-pill { font-size: 13px; padding: 6px 12px; }
+                  .ad-cta-btn { max-width: 450px; padding: 18px 0; font-size: 18px; }
+                  .ad-cta-sub { font-size: 14px; }
+                  .ad-watermark { font-size: 16px; }
+                </style>
+                ${targetHtml}
+              </div>
+            </foreignObject>
+          </svg>
+        `;
+        
+        const svgBlob = new Blob([svgWrapper], { type: 'image/svg+xml;charset=utf-8' });
+        const URL = window.URL || window.webkitURL || window;
+        const blobURL = URL.createObjectURL(svgBlob);
+        
+        const img = new Image();
+        img.onload = function() {
+          ctx.clearRect(0, 0, outWidth, outHeight);
+          ctx.fillStyle = '#09090f';
+          ctx.fillRect(0, 0, outWidth, outHeight);
+          ctx.drawImage(img, 0, 0, outWidth, outHeight);
+          URL.revokeObjectURL(blobURL);
+          
+          currentFrame++;
+          const pct = Math.round((currentFrame / totalFrames) * 100);
+          progressBar.style.width = pct + '%';
+          statusText.textContent = `${pct}% completed (${currentFrame}/${totalFrames} frames)`;
+          
+          setTimeout(renderFrame, 16);
+        };
+        img.src = blobURL;
+      }
+      
+      // Delay slightly to trigger frame rendering
+      setTimeout(renderFrame, 400);
+    }
+
+    // 6. EMBED CODE WIDGET BUILDER
+    function generateEmbedCode() {
+      const wrapperCode = `
+<!-- CVGlide Interactive Resume ATS Matcher Widget -->
+<div id="cvglide-match-widget-container" style="position:relative; width:100%; max-width:600px; margin:0 auto; aspect-ratio:1/1; border-radius:16px; overflow:hidden; box-shadow:0 15px 35px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08);">
+  <iframe src="${window.location.origin}${window.location.pathname}?widget=true" style="position:absolute; width:100%; height:100%; border:none; top:0; left:0;" scrolling="no"></iframe>
+</div>
+      `;
+      document.getElementById('embedCodeBox').textContent = wrapperCode.trim();
+      toggleEmbedModal(true);
+    }
+
+    function toggleEmbedModal(show) {
+      document.getElementById('embedModal').style.display = show ? 'flex' : 'none';
+    }
+
+    function copyEmbedCode() {
+      const code = document.getElementById('embedCodeBox').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Responsive widget embed code copied to clipboard!");
+      });
+    }
+
+    // CHECK IF THIS RUNS AS SELF-CONTAINED EMBEDDED WIDGET
+    function checkWidgetMode() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('widget') === 'true') {
+        // Hide all dashboard headers & control columns!
+        document.querySelector('header').style.display = 'none';
+        document.querySelector('.dashboard').style.gridTemplateColumns = '1fr';
+        document.querySelector('.controls-container').style.display = 'none';
+        document.querySelector('.preview-container').style.padding = '0';
+        document.querySelector('.preview-container').style.border = 'none';
+        document.querySelector('.preview-container').style.background = 'none';
+        document.querySelector('body').style.backgroundImage = 'none';
+        document.querySelector('body').style.backgroundColor = 'transparent';
+        setRatio('square');
+      }
+    }
+
+    // INITIALIZE AD STUDIO
+    function init() {
+      checkWidgetMode();
+      renderPresets();
+      selectPreset('preset1');
+      generateDynamicResumes();
+      
+      state.lastFrame = performance.now();
+      requestAnimationFrame(adAnimationLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>
